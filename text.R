@@ -1,7 +1,11 @@
 library(tidyverse)
-library(tidytext)
 theme_set(theme_minimal())
+library(tidytext)
+library(tm)
+library(qdap)
+library(wordcloud)
 
+#
 # Twitter: Data ----
 twitter_data <- read_rds("Data/twitter_data.rds")
 # EDA
@@ -65,6 +69,9 @@ custom_stop_words <- tibble(
 stop_words_2 <- stop_words %>% 
   bind_rows(custom_stop_words)
 
+tidy_twitter <- tidy_twitter %>% 
+  anti_join(stop_words_2)
+
 tidy_twitter %>% 
   filter(complaint_label == "Non-Complaint") %>% 
   count(word) %>% 
@@ -113,9 +120,6 @@ wordcloud(
 
 #
 # Twitter: Sentiment Analysis ----
-tidy_twitter <- tidy_twitter %>% 
-  anti_join(stop_words_2)
-
 sentiment_twitter <- tidy_twitter %>% 
   inner_join(get_sentiments("nrc"))
 sentiment_twitter %>% 
@@ -165,4 +169,153 @@ tidy_twitter %>%
     subtitle = "Airline Twitter Data"
   )
 #
+# Twitter: Topic Model ----
+library(topicmodels)
+
+# - dtm
+dtm_twitter <- tidy_twitter %>% 
+  count(word, tweet_id) %>% 
+  cast_dtm(tweet_id, word, n)
+# - LDA
+lda_out <- LDA(
+  dtm_twitter,
+  k = 2,
+  method = "Gibbs",
+  control = list(seed = 42)
+)
+
+lda_out %>% glimpse()
+lda_topics <- lda_out %>% tidy(matrix = "beta")
+lda_topics %>% arrange(desc(beta))
 # Roomba ----
+
+# Drinks: Data ----
+# - Coffee
+coffee <- read_csv("https://assets.datacamp.com/production/repositories/19/datasets/27a2a8587eff17add54f4ba288e770e235ea3325/coffee.csv")
+coffee_tweets <- coffee$text
+# - Chardonnay
+chardonnay <- read_csv("https://assets.datacamp.com/production/repositories/19/datasets/13ae5c66c3990397032b6428e50cc41ac6bc1ca7/chardonnay.csv")
+chardonnay_tweets <- chardonnay$text
+
+# Drinks: Tokenization ----
+
+# Coffee
+# - source
+coffee_source <- VectorSource(coffee_tweets)
+# - corpus
+coffee_corpus <- VCorpus(coffee_source)
+coffee_corpus[[15]][1]
+# - stop words
+stopwords("en")
+new_stops <- c("coffee", "bean", stopwords("en"))
+# - clean corpus Function
+clean_corpus_Coffee <- function(corpus) {
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  corpus <- tm_map(corpus, removeWords, words = c(stopwords("en"), "coffee", "mug"))
+  corpus <- tm_map(corpus, stripWhitespace)
+  return(corpus)
+}
+# - Apply
+coffee_corpus_clean <- clean_corpus(coffee_corpus)
+coffee_corpus[[227]] %>% content()       # Before
+coffee_corpus_clean[[227]] %>% content() # After
+# - Document Term Matrix
+coffee_dtm <- DocumentTermMatrix(coffee_corpus_clean)
+coffee_dtm_matrix <- as.matrix(coffee_dtm)
+coffee_dtm_matrix %>% dim
+coffee_dtm_matrix[25:35, c("star", "starbucks")]
+# - Term Document Matrix
+coffee_tdm <- TermDocumentMatrix(coffee_corpus_clean)
+coffee_tdm_matrix <- as.matrix(coffee_tdm)
+coffee_tdm_matrix[c("star", "starbucks"), 25:35]
+
+
+
+# Chardonnay
+# - source
+chard_source <- VectorSource(chardonnay_tweets)
+# - corpus
+chard_corpus <- VCorpus(chard_source)
+chard_corpus[[24]] %>% content()
+# - clean corpus
+stop_chard <- c(stopwords(kind = "en"), "chardonnay")
+
+clean_corpus_Chardonnay <- function(corpus) {
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  corpus <- tm_map(corpus, removeWords, words = stop_chard)
+  corpus <- tm_map(corpus, stripWhitespace)
+  return(corpus)
+}
+
+chard_corpus_Clean <- clean_corpus_Chardonnay(chard_corpus)
+chard_corpus_Clean[[24]] %>% content()
+# - TermDocument Matrix
+chard_tdm <- TermDocumentMatrix(chard_corpus_Clean)
+chard_tdm_Matrix <- as.matrix(chard_tdm)
+
+#
+# Drinks: Visuals ----
+
+# Coffee
+# - Bag of Words
+coffee_tdm_frequency <- freq_terms(
+  text.var = coffee$text,
+  top = 100,
+  at.least = 3,
+  stopwords = c(stopwords("english"),"coffee","mug")
+)
+
+# - Barplot
+coffee_tdm_frequency %>% plot()
+
+# - WordCloud
+wordcloud(words = coffee_tdm_frequency$WORD,
+          freq = coffee_tdm_frequency$FREQ,
+          max.words = 50, 
+          colors = "red")
+
+
+# Chardonnay
+# - Bag of Word
+chard_tdm_frequency <- freq_terms(
+  text.var = chardonnay$text,
+  top = 100,
+  at.least = 3,
+  stopwords = c(stopwords("english"),"chardonnay")
+)
+# - WordCloud
+wordcloud(words = chard_tdm_frequency$WORD,
+          freq = chard_tdm_frequency$FREQ,
+          max.words = 100,
+          colors = c("grey80", "darkgoldenrod1", "tomato"))
+
+# BOTH
+all_coffee <- paste(coffee$text, collapse = " ")
+all_chardonnay <- paste(chardonnay$text, collapse = " ")
+all_tweets <- c(all_coffee, all_chardonnay)
+# - source
+all_drinks <- VectorSource(all_tweets) 
+all_drinks_corpus <- VCorpus(all_drinks)
+# - clean corpus
+clean_corpus_ALL <- function(corpus) {
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  corpus <- tm_map(corpus, removeWords, c(stopwords("en"), "amp", "glass", "chardonnay", "coffee"))
+  corpus <- tm_map(corpus, stripWhitespace)
+  return(corpus)
+}
+
+drinks_corpus_Clean <- clean_corpus_ALL(all_drinks_corpus)
+# - TermDocument Matrix
+drinks_tdm <- TermDocumentMatrix(drinks_corpus_Clean)
+drinks_tdm_Matrix <- as.matrix(drinks_tdm)
+# - VISUAL: Commanlity Cloud
+commonality.cloud(term.matrix = drinks_tdm_Matrix,
+                  max.words = 100,
+                  colors = "steelblue1")
+# - VISUAL: Comparison Cloud
+comparison.cloud(term.matrix = drinks_tdm_Matrix, 
+                 colors = c("orange", "blue"), 
+                 max.words = 50)
