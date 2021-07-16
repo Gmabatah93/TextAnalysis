@@ -4,6 +4,7 @@ library(tidytext)
 library(tm)
 library(qdap)
 library(wordcloud)
+library(plotrix)
 
 #
 # Twitter: Data ----
@@ -204,118 +205,140 @@ chardonnay_tweets <- chardonnay$text
 coffee_source <- VectorSource(coffee_tweets)
 # - corpus
 coffee_corpus <- VCorpus(coffee_source)
-coffee_corpus[[15]][1]
-# - stop words
-stopwords("en")
-new_stops <- c("coffee", "bean", stopwords("en"))
-# - clean corpus Function
+coffee_corpus[[227]] %>% content()
+# - clean corpus
+stops_Coffee <- c("coffee", "bean", "mug", stopwords("en"))
+
 clean_corpus_Coffee <- function(corpus) {
   corpus <- tm_map(corpus, removePunctuation)
   corpus <- tm_map(corpus, content_transformer(tolower))
-  corpus <- tm_map(corpus, removeWords, words = c(stopwords("en"), "coffee", "mug"))
+  corpus <- tm_map(corpus, removeWords, words = stops_Coffee)
   corpus <- tm_map(corpus, stripWhitespace)
   return(corpus)
 }
-# - Apply
-coffee_corpus_clean <- clean_corpus(coffee_corpus)
-coffee_corpus[[227]] %>% content()       # Before
-coffee_corpus_clean[[227]] %>% content() # After
+
+coffee_corpus_clean <- clean_corpus_Coffee(coffee_corpus)
+coffee_corpus_clean[[227]] %>% content()
 # - Document Term Matrix
 coffee_dtm <- DocumentTermMatrix(coffee_corpus_clean)
 coffee_dtm_matrix <- as.matrix(coffee_dtm)
-coffee_dtm_matrix %>% dim
 coffee_dtm_matrix[25:35, c("star", "starbucks")]
 # - Term Document Matrix
 coffee_tdm <- TermDocumentMatrix(coffee_corpus_clean)
 coffee_tdm_matrix <- as.matrix(coffee_tdm)
 coffee_tdm_matrix[c("star", "starbucks"), 25:35]
+# - Bag of Words
+coffee_Matrix <- coffee_tdm_matrix %>% rowSums() %>% as.data.frame()
+# -- manual
+coffee_BOW_Manual <- tibble(
+  Word = rownames(coffee_Matrix),
+  Freq = coffee_Matrix[,1]
+) %>% arrange(desc(Freq))
+# -- qdap
+coffee_BOW_QDAP <- freq_terms(text.var = coffee$text,
+                              top = 30,
+                              at.least = 3,
+                              stopwords = stops_Coffee)
+coffee_BOW_QDAP %>% plot()
+# - VISUAL: Frequency Plot
+coffee_BOW_Manual %>% 
+  filter(Freq > 30) %>% 
+  mutate(Word = fct_reorder(Word, Freq)) %>% 
+  ggplot(aes(Freq, Word)) +
+  geom_col() +
+  ggtitle(label = "Coffee: Bag of Words")
 
 
 
 # Chardonnay
 # - source
-chard_source <- VectorSource(chardonnay_tweets)
+chardonnay_source <- VectorSource(chardonnay_tweets)
 # - corpus
-chard_corpus <- VCorpus(chard_source)
-chard_corpus[[24]] %>% content()
+chardonnay_corpus <- VCorpus(chardonnay_source)
+chardonnay_corpus[[24]] %>% content()
 # - clean corpus
-stop_chard <- c(stopwords(kind = "en"), "chardonnay")
+stop_chardonnay <- c("chardonnay", "amp", "wine", "glass", stopwords("en"))
 
 clean_corpus_Chardonnay <- function(corpus) {
   corpus <- tm_map(corpus, removePunctuation)
   corpus <- tm_map(corpus, content_transformer(tolower))
-  corpus <- tm_map(corpus, removeWords, words = stop_chard)
+  corpus <- tm_map(corpus, removeWords, words = stop_chardonnay)
   corpus <- tm_map(corpus, stripWhitespace)
   return(corpus)
 }
 
-chard_corpus_Clean <- clean_corpus_Chardonnay(chard_corpus)
-chard_corpus_Clean[[24]] %>% content()
+chardonnay_corpus_Clean <- clean_corpus_Chardonnay(chardonnay_corpus)
+chardonnay_corpus_Clean[[24]] %>% content()
 # - TermDocument Matrix
-chard_tdm <- TermDocumentMatrix(chard_corpus_Clean)
-chard_tdm_Matrix <- as.matrix(chard_tdm)
-
-#
-# Drinks: Visuals ----
-
-# Coffee
+chardonnay_tdm <- TermDocumentMatrix(chardonnay_corpus_Clean)
+chardonnay_tdm_Matrix <- as.matrix(chardonnay_tdm)
 # - Bag of Words
-coffee_tdm_frequency <- freq_terms(
-  text.var = coffee$text,
-  top = 100,
-  at.least = 3,
-  stopwords = c(stopwords("english"),"coffee","mug")
-)
-
-# - Barplot
-coffee_tdm_frequency %>% plot()
-
-# - WordCloud
-wordcloud(words = coffee_tdm_frequency$WORD,
-          freq = coffee_tdm_frequency$FREQ,
-          max.words = 50, 
-          colors = "red")
-
-
-# Chardonnay
-# - Bag of Word
-chard_tdm_frequency <- freq_terms(
-  text.var = chardonnay$text,
-  top = 100,
-  at.least = 3,
-  stopwords = c(stopwords("english"),"chardonnay")
-)
-# - WordCloud
-wordcloud(words = chard_tdm_frequency$WORD,
-          freq = chard_tdm_frequency$FREQ,
-          max.words = 100,
+chardonnay_Matrix <- rowSums(chardonnay_tdm_Matrix) %>% as.data.frame()
+# -- manual
+chardonnay_BOW_Manual <- tibble(
+  Word = rownames(chardonnay_Matrix),
+  Freq = chardonnay_Matrix[,1]
+) %>% arrange(desc(Freq))
+# - VISUAL: Frequency Plot
+chardonnay_BOW_Manual %>% 
+  filter(Freq > 20) %>% 
+  mutate(Word = fct_reorder(Word, Freq)) %>% 
+  ggplot(aes(Freq, Word)) +
+  geom_col() +
+  ggtitle(label = "Chardonnay: Bag of Words")
+# - VISUAL: WordCloud
+wordcloud(words = chardonnay_BOW_Manual$Word,
+          freq = chardonnay_BOW_Manual$Freq,
+          max.words = 100, 
           colors = c("grey80", "darkgoldenrod1", "tomato"))
+
 
 # BOTH
 all_coffee <- paste(coffee$text, collapse = " ")
 all_chardonnay <- paste(chardonnay$text, collapse = " ")
-all_tweets <- c(all_coffee, all_chardonnay)
-# - source
-all_drinks <- VectorSource(all_tweets) 
-all_drinks_corpus <- VCorpus(all_drinks)
-# - clean corpus
-clean_corpus_ALL <- function(corpus) {
+all_drinks <- c(all_coffee, all_chardonnay)
+# - Tokenization
+drinks_source <- VectorSource(all_drinks)
+drinks_corpus <- VCorpus(drinks_source)
+
+stops_Drinks <- c("coffee", "bean", "mug", "chardonnay", "amp", "wine", "glass", stopwords("en"))
+
+clean_corpus_Drinks <- function(corpus) {
   corpus <- tm_map(corpus, removePunctuation)
-  corpus <- tm_map(corpus, content_transformer(tolower))
-  corpus <- tm_map(corpus, removeWords, c(stopwords("en"), "amp", "glass", "chardonnay", "coffee"))
   corpus <- tm_map(corpus, stripWhitespace)
+  corpus <- tm_map(corpus, removeNumbers)
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  corpus <- tm_map(corpus, removeWords, words = stops_Drinks)
   return(corpus)
 }
 
-drinks_corpus_Clean <- clean_corpus_ALL(all_drinks_corpus)
-# - TermDocument Matrix
+drinks_corpus_Clean <- clean_corpus_Drinks(drinks_corpus)
+# - TermDocumentMatrix
 drinks_tdm <- TermDocumentMatrix(drinks_corpus_Clean)
+colnames(drinks_tdm) <- c("Coffee", "Chardonnay")
 drinks_tdm_Matrix <- as.matrix(drinks_tdm)
-# - VISUAL: Commanlity Cloud
+# - VISUAL: Commonality CLoud
 commonality.cloud(term.matrix = drinks_tdm_Matrix,
                   max.words = 100,
                   colors = "steelblue1")
-# - VISUAL: Comparison Cloud
-comparison.cloud(term.matrix = drinks_tdm_Matrix, 
-                 colors = c("orange", "blue"), 
-                 max.words = 50)
+# - VISUAL: Comparision CLoud
+comparison.cloud(term.matrix = drinks_tdm_Matrix,
+                 max.words = 100,
+                 colors = c("orange", "blue"))
+# - VISUAL: Pyramid Plot
+drinks_BOW_top25 <- drinks_tdm_Matrix %>% 
+  as_data_frame(rownames = "word") %>% 
+  filter(. > 0) %>% 
+  mutate(difference = Chardonnay - Coffee) %>% 
+  top_n(n = 25, wt = difference) %>% 
+  arrange(desc(difference))
+
+pyramid.plot(
+  drinks_BOW_top25$Chardonnay, 
+  drinks_BOW_top25$Coffee, 
+  labels = drinks_BOW_top25$word, 
+  top.labels = c("Chardonnay", "Words", "Coffee"), 
+  main = "Words in Common", 
+  unit = NULL,
+  gap = 8,
+)
