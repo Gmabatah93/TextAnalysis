@@ -5,6 +5,7 @@ library(tm)
 library(qdap)
 library(wordcloud)
 library(plotrix)
+library(RWeka)
 
 #
 # Twitter: Data ----
@@ -223,10 +224,41 @@ coffee_corpus_clean[[227]] %>% content()
 coffee_dtm <- DocumentTermMatrix(coffee_corpus_clean)
 coffee_dtm_matrix <- as.matrix(coffee_dtm)
 coffee_dtm_matrix[25:35, c("star", "starbucks")]
+# -- 2-gram
+coffee_tokenizer <- function(x) {
+  NGramTokenizer(x, Weka_control(min = 2, max = 2))
+}
+
+coffee_dtm_bigram <- DocumentTermMatrix(
+  coffee_corpus_clean, 
+  control = list(tokenize = coffee_tokenizer)
+)
+coffee_dtm_bigram_Matrix <- as.matrix(coffee_dtm_bigram)
+coffee_BOW_bigram <- coffee_dtm_bigram_Matrix %>% 
+  colSums() %>% as_data_frame(rownames = "word") %>% 
+  arrange(desc(value))
+
 # - Term Document Matrix
 coffee_tdm <- TermDocumentMatrix(coffee_corpus_clean)
 coffee_tdm_matrix <- as.matrix(coffee_tdm)
 coffee_tdm_matrix[c("star", "starbucks"), 25:35]
+coffee_tdm_matrix[c("coffee", "espresso", "latte"), 161:166]
+
+# - TFIDF
+stops_Coffee <- c("coffee", "bean", "mug", stopwords("en"))
+
+clean_corpus_Coffee_tfidf <- function(corpus) {
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  corpus <- tm_map(corpus, removeWords, words = stopwords)
+  corpus <- tm_map(corpus, stripWhitespace)
+  return(corpus)
+}
+
+coffee_corpus_clean_tfidf <- clean_corpus_Coffee_tfidf(coffee_corpus)
+coffee_corpus_clean[[227]] %>% content()
+
+
 # - Bag of Words
 coffee_Matrix <- coffee_tdm_matrix %>% rowSums() %>% as.data.frame()
 # -- manual
@@ -247,6 +279,12 @@ coffee_BOW_Manual %>%
   ggplot(aes(Freq, Word)) +
   geom_col() +
   ggtitle(label = "Coffee: Bag of Words")
+# - VISUAL: WordCloud
+wordcloud(words = coffee_BOW_bigram$word,
+          freq = coffee_BOW_bigram$value,
+          max.words = 15, 
+          colors = c("grey80", "darkgoldenrod1", "tomato"))
+
 
 
 
@@ -272,6 +310,20 @@ chardonnay_corpus_Clean[[24]] %>% content()
 # - TermDocument Matrix
 chardonnay_tdm <- TermDocumentMatrix(chardonnay_corpus_Clean)
 chardonnay_tdm_Matrix <- as.matrix(chardonnay_tdm)
+# -- 2-gram
+bigram_tokenizer <- function(x) {
+  NGramTokenizer(x, Weka_control(min = 2, max = 2))
+}
+
+chardonnay_dtm_bigram <- DocumentTermMatrix(
+  chardonnay_corpus_Clean, 
+  control = list(tokenize = bigram_tokenizer)
+)
+chardonnay_dtm_bigram_Matrix <- as.matrix(chardonnay_dtm_bigram)
+chardonnay_BOW_bigram <- chardonnay_dtm_bigram_Matrix %>% 
+  colSums() %>% as_data_frame(rownames = "word") %>% 
+  arrange(desc(value))
+
 # - Bag of Words
 chardonnay_Matrix <- rowSums(chardonnay_tdm_Matrix) %>% as.data.frame()
 # -- manual
@@ -290,6 +342,11 @@ chardonnay_BOW_Manual %>%
 wordcloud(words = chardonnay_BOW_Manual$Word,
           freq = chardonnay_BOW_Manual$Freq,
           max.words = 100, 
+          colors = c("grey80", "darkgoldenrod1", "tomato"))
+# -- bigram
+wordcloud(words = chardonnay_BOW_bigram$word,
+          freq = chardonnay_BOW_bigram$value,
+          max.words = 15, 
           colors = c("grey80", "darkgoldenrod1", "tomato"))
 
 
@@ -342,3 +399,66 @@ pyramid.plot(
   unit = NULL,
   gap = 8,
 )
+
+# Tech Giants: Data ----
+amazon <- read_csv("https://assets.datacamp.com/production/repositories/19/datasets/92c0a61dc0ad77799c8cd46bd6e56d9429eb5ea4/500_amzn.csv")
+amazon_pros <- amazon$pros
+amazon_cons <- amazon$cons
+
+google <- read_csv("https://assets.datacamp.com/production/repositories/19/datasets/c050b2c388dfe7e9a0478aa3f67dd0ba3c529d3e/500_goog.csv")
+google_pros <- google$pros
+google_cons <- google$cons
+
+# Tech Giants: Tokenization ----
+# - clean text Function
+qdap_clean <- function(x){
+  x <- replace_abbreviation(x)
+  x <- replace_contraction(x)
+  x <- replace_number(x)
+  x <- replace_ordinal(x)
+  x <- replace_ordinal(x)
+  x <- replace_symbol(x)
+  x <- tolower(x)
+  return(x)
+}
+# - clean corpus Function
+tm_clean <- function(corpus){
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, stripWhitespace)
+  corpus <- tm_map(corpus, removeWords, 
+                   c(stopwords("en"), "Google", "Amazon", "company"))
+  return(corpus)
+}
+# - tokenizer
+tokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+
+
+# AMAZON
+# - clean text
+amazon_pros_clean <- qdap_clean(amazon_pros)
+amazon_cons_clean <- qdap_clean(amazon_cons)
+# - make corpus
+amazon_pros_Source <- VectorSource(amazon_pros_clean)
+amazon_cons_Source <- VectorSource(amazon_cons_clean)
+amazon_pros_Corpus <- VCorpus(amazon_pros_Source)
+amazon_cons_Corpus <- VCorpus(amazon_cons_Source)
+# - clean corpus
+amazon_pros_Corpus_Clean <- tech_tm_amazon_clean(amazon_pros_Corpus)
+amazon_cons_Corpus_Clean <- tech_tm_amazon_clean(amazon_cons_Corpus)
+# - token
+amazon_pros_tdm <- TermDocumentMatrix(amazon_pros_Corpus_Clean,
+                                      control = list(tokenize = tokenizer))
+
+# GOOGLE
+# - clean text
+google_pros_clean <- qdap_clean(google_pros)
+google_cons_clean <- qdap_clean(google_cons)
+# - make corpus
+google_pros_Source <- VectorSource(google_pros_clean)
+google_cons_Source <- VectorSource(google_cons_clean)
+google_pros_Corpus <- VCorpus(google_pros_Source)
+google_cons_Corpus <- VCorpus(google_cons_Source)
+# - clean corpus
+google_pros_Corpus_Clean <- tech_tm_amazon_clean(google_pros_Corpus)
+google_cons_Corpus_Clean <- tech_tm_amazon_clean(google_cons_Corpus)
+

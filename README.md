@@ -29,3 +29,6 @@ _makes use of vocabulary, word structure, part of speech tagging and grammer rel
 
 ## Part of Speech Tagging
 > Defines the syntactic context and role of words in the Sentence. _[ Nouns | Verbs | Adjectives | Adverbs ]_
+
+## Term - Frequency Inverse-Document-Frequency
+<img src="Images/tfidf.PNG" width="500">
