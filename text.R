@@ -1,4 +1,5 @@
 library(tidyverse)
+library(gutenbergr)
 theme_set(theme_minimal())
 library(tidytext)
 library(tm)
@@ -8,7 +9,7 @@ library(plotrix)
 library(RWeka)
 
 #
-# Twitter: Data ----
+# (Tidytext) Twitter: Data ----
 twitter_data <- read_rds("Data/twitter_data.rds")
 # EDA
 twitter_data %>% 
@@ -31,7 +32,7 @@ twitter_data %>%
   summarize(
     avg_followers = mean(usr_followers_count),
     n = n())
-# Twitter: Tokenization ----
+# (Tidytext) Twitter: Tokenization ----
 tidy_twitter <- twitter_data %>% 
   unnest_tokens(word, tweet_text) %>% 
   anti_join(stop_words)
@@ -121,7 +122,7 @@ wordcloud(
 )
 
 #
-# Twitter: Sentiment Analysis ----
+# (Tidytext) Twitter: Sentiment Analysis ----
 sentiment_twitter <- tidy_twitter %>% 
   inner_join(get_sentiments("nrc"))
 sentiment_twitter %>% 
@@ -171,7 +172,7 @@ tidy_twitter %>%
     subtitle = "Airline Twitter Data"
   )
 #
-# Twitter: Topic Model ----
+# (Tidytext) Twitter: Topic Model ----
 library(topicmodels)
 
 # - dtm
@@ -189,9 +190,9 @@ lda_out <- LDA(
 lda_out %>% glimpse()
 lda_topics <- lda_out %>% tidy(matrix = "beta")
 lda_topics %>% arrange(desc(beta))
-# Roomba ----
+# (Tidytext) Roomba ----
 
-# Drinks: Data ----
+# (QDAP) Drinks: Data ----
 # - Coffee
 coffee <- read_csv("https://assets.datacamp.com/production/repositories/19/datasets/27a2a8587eff17add54f4ba288e770e235ea3325/coffee.csv")
 coffee_tweets <- coffee$text
@@ -199,7 +200,7 @@ coffee_tweets <- coffee$text
 chardonnay <- read_csv("https://assets.datacamp.com/production/repositories/19/datasets/13ae5c66c3990397032b6428e50cc41ac6bc1ca7/chardonnay.csv")
 chardonnay_tweets <- chardonnay$text
 
-# Drinks: Tokenization ----
+# (QDAP) Drinks: Tokenization ----
 
 # Coffee
 # - source
@@ -400,7 +401,7 @@ pyramid.plot(
   gap = 8,
 )
 
-# Tech Giants: Data ----
+# (QDAP) Tech Giants: Data ----
 amazon <- read_csv("https://assets.datacamp.com/production/repositories/19/datasets/92c0a61dc0ad77799c8cd46bd6e56d9429eb5ea4/500_amzn.csv")
 amazon_pros <- amazon$pros
 amazon_cons <- amazon$cons
@@ -409,7 +410,7 @@ google <- read_csv("https://assets.datacamp.com/production/repositories/19/datas
 google_pros <- google$pros
 google_cons <- google$cons
 
-# Tech Giants: Tokenization ----
+# (QDAP) Tech Giants: Tokenization ----
 # - clean text Function
 qdap_clean <- function(x){
   x <- replace_abbreviation(x)
@@ -462,3 +463,5 @@ google_cons_Corpus <- VCorpus(google_cons_Source)
 google_pros_Corpus_Clean <- tech_tm_amazon_clean(google_pros_Corpus)
 google_cons_Corpus_Clean <- tech_tm_amazon_clean(google_cons_Corpus)
 
+
+# (Topic Modeling) Sherlock Holmes ----

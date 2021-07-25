@@ -32,3 +32,20 @@ _makes use of vocabulary, word structure, part of speech tagging and grammer rel
 
 ## Term - Frequency Inverse-Document-Frequency
 <img src="Images/tfidf.PNG" width="500">
+
+# Latent Dirichlet Allocation
+<img src="Images/LDA_Algorithm.PNG" width="500">
+
+1. Initialize parameters
+<img src="Images/LDA_Algorithm.PNG" width="500">
+
+2. Initialize topic assignments randomly
+<img src="Images/LDA_topic.PNG" width="500">
+
+3. Iterate for each word in each document:
+  - Resample topic for word, given all other words and their current topic assignments
+<img src="Images/LDA_Iterate.PNG" width="500">
+<img src="Images/LDA_Resample.PNG" width="500">
+
+4. Get results
+5. Evaluate Model
