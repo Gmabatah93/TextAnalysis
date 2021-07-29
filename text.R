@@ -745,6 +745,9 @@ for (i  in 1:5) {
   addressesTo_Moe = rbind(addressesTo_Moe, nextSentenceAfterMidge)
 }
 
+
+
+
 # Bigrams: Relationships among words
 library(igraph)
 library(ggraph)
@@ -796,3 +799,106 @@ rbind(sc_word1_dont, sc_word2_dont) %>%
   geom_node_point(color = "lightblue", size = 5) +
   geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
   theme_void()
+
+
+
+# Sentiment Analsysis: Top 20 Characters
+visualize_sentiments <- function(SCWords) {
+  
+  SCWords_sentiments <- SCWords %>%
+    inner_join(get_sentiments("afinn"), by = "word") %>%
+    group_by(name) %>%
+    summarize(score = sum(score * n) / sum(n)) %>%
+    arrange(desc(score))
+  
+  SCWords_sentiments %>%
+    mutate(name = reorder(name, score)) %>%
+    ggplot(aes(name, score, fill = score > 0)) +
+    geom_col(show.legend = TRUE) +
+    coord_flip() +
+    ylab("Average sentiment score") + theme_bw()
+ 
+}
+# - top 20 characters
+top20_characters <- head(topCharacters, 20) %>% pull(name)
+# - Bag of Words: top 20 
+sc_words_Top20 <- sc_words %>% 
+  unnest_tokens(word, normalized_text) %>% 
+  filter(name != "NA") %>% 
+  filter(name %in% top20_characters) %>% 
+  count(name, word, sort = TRUE) %>% 
+  ungroup()
+# - senitment: AFINN
+sc_words_Top20_AFINN <- sc_words_Top20 %>% 
+  inner_join(get_sentiments("afinn"), by = "word") %>% 
+  group_by(name) %>% 
+  summarise(score = sum( value * n ) / sum(n)) %>% 
+  arrange(-score)
+# - Plot: AFINN
+sc_words_Top20_AFINN %>% 
+  mutate(name = reorder(name, score)) %>% 
+  ggplot(aes(name, score, fill = score > 0)) +
+  geom_col() +
+  coord_flip() +
+  labs(y = "Avg sentiment score")
+
+# Sentiment Analsysis: Words
+sc_contributions <- sc_words %>% 
+  unnest_tokens(word, normalized_text) %>% 
+  filter(name != "NA") %>% 
+  count(name, word, sort = TRUE) %>% 
+  ungroup() %>% 
+  inner_join(get_sentiments("afinn"), by = "word") %>% 
+  group_by(word) %>% 
+  summarise(occurences = n(),
+            contribution = sum(value))
+# - Plot:
+sc_contributions %>%
+  top_n(20, abs(contribution)) %>%
+  mutate(word = reorder(word, contribution)) %>%
+  ggplot(aes(word, contribution, fill = contribution > 0)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip()
+
+sc_words %>%
+  unnest_tokens(word, normalized_text) %>%
+  filter(name != "NA") %>%
+  inner_join(get_sentiments("afinn"), by = "word") %>%
+  group_by(id,word) %>%
+  summarize(sentiment = mean(value),
+            words = n()) %>%
+  ungroup() %>%
+  filter(words >= 5) 
+
+
+
+# Topic Modeling 
+# - corpus
+sc_corpus <- VectorSource(sc_words$normalized_text) %>% Corpus()
+# - text preprocess
+sc_corpus <- tm_map(sc_corpus, tolower)
+sc_corpus <- tm_map(sc_corpus, removePunctuation)
+sc_corpus <- tm_map(sc_corpus, removeWords, stopwords("english"))
+sc_corpus <- tm_map(sc_corpus, stemDocument)
+# - documentTermMatix
+sc_dtm <- sc_corpus %>% DocumentTermMatrix()
+sc_dtm <- sc_dtm %>% removeSparseTerms(0.997)
+
+labeled_Terms <- as.data.frame(as.matrix(sc_dtm))
+labeled_Terms <- labeled_Terms[ rowSums(abs(labeled_Terms)) != 0, ]
+
+# - LDA
+mod_LDA <- LDA(labeled_Terms, k = 2, control = list(seed = 13))
+# - LDA: topic-word
+lda_topics <- tidy(mod_LDA, matrix = "beta")
+lda_top_terms <- lda_topics %>% 
+  group_by(topic) %>% 
+  top_n(10, beta) %>% 
+  ungroup() %>% 
+  arrange(topic, -beta)
+lda_top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
