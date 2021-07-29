@@ -1,12 +1,15 @@
 library(tidyverse)
-library(gutenbergr)
 theme_set(theme_minimal())
 library(tidytext)
 library(tm)
 library(qdap)
+library(SnowballC)
+library(quanteda)
+library(topicmodels)
 library(wordcloud)
 library(plotrix)
 library(RWeka)
+library(gutenbergr)
 
 #
 # (Tidytext) Twitter: Data ----
@@ -465,3 +468,331 @@ google_cons_Corpus_Clean <- tech_tm_amazon_clean(google_cons_Corpus)
 
 
 # (Topic Modeling) Sherlock Holmes ----
+# (Topic Modeling) Hotel Reviews ----
+
+# Data
+reviews <- read_csv("Data/deceptive-opinion.csv")
+
+# Tokenization
+reviews_Corpus <- VectorSource(reviews$text) %>% Corpus()
+reviews_DTM <- reviews_Corpus %>% DocumentTermMatrix()
+reviews_DTM_tidy <- tidy(reviews_DTM)
+# - clean
+custom_stop_words <- tibble(word = c("hotel", "room"))
+reviews_DTM_tidy_clean <- reviews_DTM_tidy %>%
+  # stop words
+  anti_join(stop_words, by = c("term" = "word")) %>% 
+  anti_join(custom_stop_words, by = c("term" = "word")) %>% 
+  # stemming
+  mutate(stem = wordStem(term))
+
+cleaned_documents <- reviews_DTM_tidy_clean %>%
+  group_by(document) %>% 
+  mutate(terms = toString(rep(term, count))) %>%
+  select(document, terms) %>%
+  unique()
+
+
+reviews_Corpus_clean <- VectorSource(cleaned_documents$terms) %>% Corpus()
+reviews_DTM_clean <- reviews_Corpus_clean %>% DocumentTermMatrix()
+
+# LDA
+mod_LDA_2 <- LDA(x = reviews_DTM_clean, k = 2, 
+                 control = list(seed = 1234))
+# topic-words
+lda_topics_2 <- mod_LDA_2 %>% tidy(matrix = "beta")
+# - top 10 words
+lda_2_words10 <- lda_topics_2 %>% 
+  group_by(topic) %>% 
+  top_n(10, beta) %>% 
+  ungroup() %>% 
+  arrange(topic, -beta)
+lda_2_words10 %>% 
+  mutate(term = reorder(term, beta),
+         topic = as.factor(topic)) %>% 
+  ggplot(aes(term, beta, fill = topic)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  labs(x = NULL, y = "beta") +
+  coord_flip()
+
+
+# TF-IDF (Deveptive ?)
+# - bow
+reviews_Words <- reviews %>% 
+  unnest_tokens(word, text) %>% 
+  count(deceptive, word) %>% 
+  ungroup()
+reviews_Words_total <- reviews_Words %>% 
+  group_by(deceptive) %>% 
+  summarise(total = sum(n))
+reviews_Words <- left_join(reviews_Words, reviews_Words_total)
+
+# - tfidf 
+reviews_TFIDF <- reviews_Words %>% 
+  bind_tf_idf(term = word, 
+              document = deceptive,
+              n = n) %>% 
+  select(-total) %>% 
+  arrange(desc(tf_idf)) %>% 
+  mutate(word = factor(word, levels = rev(unique(word))))
+
+reviews_TFIDF %>% 
+  group_by(deceptive) %>% 
+  top_n(10) %>% 
+  ungroup() %>% 
+  ggplot(aes(word, tf_idf, fill = as.factor(deceptive))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~deceptive, scales = "free") +
+  labs(x = NULL, y = "tf_idf") +
+  coord_flip()
+
+
+
+# TF-IDF (Polarity)
+# - bow
+reviews_Words <- reviews %>% 
+  unnest_tokens(word, text) %>% 
+  count(polarity, word) %>% 
+  ungroup()
+reviews_Words_total <- reviews_Words %>% 
+  group_by(polarity) %>% 
+  summarise(total = sum(n))
+reviews_Words <- left_join(reviews_Words, reviews_Words_total)
+
+# - tfidf 
+reviews_TFIDF <- reviews_Words %>% 
+  bind_tf_idf(term = word, 
+              document = polarity,
+              n = n) %>% 
+  select(-total) %>% 
+  arrange(desc(tf_idf)) %>% 
+  mutate(word = factor(word, levels = rev(unique(word))))
+
+reviews_TFIDF %>% 
+  group_by(polarity) %>% 
+  top_n(10) %>% 
+  ungroup() %>% 
+  ggplot(aes(word, tf_idf, fill = as.factor(polarity))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~polarity, scales = "free") +
+  labs(x = NULL, y = "tf_idf") +
+  coord_flip()
+
+
+
+# TF-IDF (Hotels)
+# - bow
+reviews_Words <- reviews %>% 
+  unnest_tokens(word, text) %>% 
+  count(hotel, word) %>% 
+  ungroup()
+reviews_Words_total <- reviews_Words %>% 
+  group_by(hotel) %>% 
+  summarise(total = sum(n))
+reviews_Words <- left_join(reviews_Words, reviews_Words_total)
+
+# - tfidf 
+reviews_TFIDF <- reviews_Words %>% 
+  bind_tf_idf(term = word, 
+              document = hotel,
+              n = n) %>% 
+  select(-total) %>% 
+  arrange(desc(tf_idf)) %>% 
+  mutate(word = factor(word, levels = rev(unique(word))))
+
+reviews_TFIDF %>% 
+  group_by(hotel) %>% 
+  top_n(5) %>% 
+  ungroup() %>% 
+  ggplot(aes(word, tf_idf, fill = hotel)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~hotel, ncol = 4, scales = "free") +
+  labs(x = NULL, y = "tf_idf") +
+  coord_flip()
+
+# EXAMPLE: Simpsons ----
+
+# Data 
+scripts <- read_csv("Data/simpsons_script_lines.csv")
+characters <- read_csv("Data/simpsons_characters.csv")
+scripts_characters <- left_join(scripts, characters, by = c("character_id" = "id")) %>% 
+  filter(!is.na(name))
+
+
+# EDA
+# - 20 most active characters
+topCharacters <- scripts_characters %>% 
+  group_by(name) %>% 
+  tally(sort = TRUE) %>% 
+  top_n(20)
+# - Plot: most active characters
+topCharacters %>% 
+  ggplot(aes(reorder(name,n), n)) +
+  geom_col() + 
+  coord_flip() +
+  labs(title = "Most Active Characeters",
+       x = NULL, y = NULL)
+# - top words used
+sc_words <- scripts_characters %>% 
+  select(id, name, normalized_text)
+# - Plot: top words used
+sc_words %>% 
+  unnest_tokens(word, normalized_text) %>% 
+  filter(!word %in% stop_words$word) %>% 
+  count(word, sort = TRUE) %>% 
+  top_n(20) %>% 
+  mutate(word = factor(word, levels = rev(unique(word)))) %>% 
+  ggplot(aes(word, n)) +
+  geom_col() +
+  labs(title = "Most Common Words",
+       x = "Word", y = NULL) +
+  coord_flip()
+
+
+
+# Parts of Speech
+# - adjectives
+sc_words %>% 
+  unnest_tokens(word, normalized_text) %>% 
+  filter(!word %in% stop_words$word) %>% 
+  left_join(parts_of_speech) %>% 
+  filter(pos == "Adjective") %>% 
+  count(word, sort = TRUE) %>% 
+  ungroup()
+# - verb (transitive)
+sc_words %>% 
+  unnest_tokens(word, normalized_text) %>% 
+  filter(!word %in% stop_words$word) %>% 
+  left_join(parts_of_speech) %>% 
+  filter(pos == "Verb (transitive)") %>% 
+  count(word, sort = TRUE) %>% 
+  ungroup()
+# - verb (intransitive)
+sc_words %>% 
+  unnest_tokens(word, normalized_text) %>% 
+  filter(!word %in% stop_words$word) %>% 
+  left_join(parts_of_speech) %>% 
+  filter(pos == "Verb (intransitive)") %>% 
+  count(word, sort = TRUE) %>% 
+  ungroup()
+# - lines with baby
+sc_words %>% 
+  filter(str_detect(normalized_text, "baby")) %>% 
+  head(10)
+
+
+
+# TF-IDF
+# - top characters
+top6_characters <- head(topCharacters) %>% pull(name)
+# - bag of words
+sc_BOW <- sc_words %>% 
+  unnest_tokens(word, normalized_text) %>% 
+  count(name, word, sort = TRUE)
+sc_words_Total <- sc_BOW %>%  
+  group_by(name) %>% 
+  summarize(total = sum(n))
+sc_BOW <- left_join(sc_BOW, sc_words_Total)
+# - tf_idf
+sc_TFIDF <- sc_BOW %>% 
+  filter(name %in% top6_characters) %>% 
+  bind_tf_idf(word, name, n) %>% 
+  arrange(desc(tf_idf)) %>% 
+  mutate(word = factor(word, levels = rev(unique(word))))
+
+sc_TFIDF %>% 
+  top_n(20) %>% 
+  ggplot(aes(word, tf_idf, fill = name)) + 
+  geom_col() +
+  labs(x = NULL, y = "tf_idf") +
+  coord_flip()
+
+
+# Important Words: Marge (homie)
+sc_Marge <- scripts_characters %>% 
+  filter(name == "Marge Simpson") %>% 
+  filter(str_detect(normalized_text, "homie"))
+
+addressesTo_Marge <- data.frame(Name = character(),
+                                Text = character())
+
+for (i  in 1:5) {
+  
+  nextSentenceAfterHomie = scripts_characters %>% 
+    filter( id > sc_Marge[i,]$id - 1 ) %>% 
+    filter( id < sc_Marge[i,]$id + 2 ) %>% 
+    select(name, raw_text)
+  
+  addressesTo_Marge = rbind(addressesTo_Marge, nextSentenceAfterHomie)
+}
+
+# Important Words: Moe (Midge)
+sc_Moe <- scripts_characters %>% 
+  filter(name == "Moe Szyslak") %>% 
+  filter(str_detect(normalized_text, "midge"))
+
+addressesTo_Moe <- data.frame(Name = character(),
+                              Text = character())
+
+for (i  in 1:5) {
+  
+  nextSentenceAfterMidge = scripts_characters %>% 
+    filter( id > sc_Moe[i,]$id - 1 ) %>% 
+    filter( id < sc_Moe[i,]$id + 2 ) %>% 
+    select(name, raw_text)
+  
+  addressesTo_Moe = rbind(addressesTo_Moe, nextSentenceAfterMidge)
+}
+
+# Bigrams: Relationships among words
+library(igraph)
+library(ggraph)
+# - bigram
+sc_bigram <- sc_words %>% 
+  unnest_tokens(bigram, normalized_text, token = "ngrams", n = 2) %>% 
+  separate(bigram, c("word1", "word2"), sep = " ") %>% 
+  filter(!word1 %in% stop_words$word,
+         !word2 %in% stop_words$word) 
+sc_bigram %>% count(word1, word2, sort = TRUE)
+# - Plot: bigram
+set.seed(2016)
+a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
+
+sc_bigram %>% 
+  count(word1, word2, sort = TRUE) %>% 
+  filter(n > 50) %>% 
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n), show.legend = FALSE, arrow = a) +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void()
+
+# - bigram (don't)
+sc_word1_dont <- sc_words %>% 
+  unnest_tokens(bigram, normalized_text, token = "ngrams", n = 2) %>% 
+  separate(bigram, c("word1", "word2"), sep = " ") %>% 
+  filter(!word1 %in% stop_words$word,
+         !word2 %in% stop_words$word) %>% 
+  count(word1, word2, sort = TRUE) %>% 
+  filter(word1 == "dont")
+
+sc_word2_dont <- sc_words %>% 
+  unnest_tokens(bigram, normalized_text, token = "ngrams", n = 2) %>% 
+  separate(bigram, c("word1", "word2"), sep = " ") %>% 
+  filter(!word1 %in% stop_words$word,
+         !word2 %in% stop_words$word) %>% 
+  count(word1, word2, sort = TRUE) %>% 
+  filter(word2 == "dont")
+# - Plot: bigram (dont)
+set.seed(2016)
+a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
+rbind(sc_word1_dont, sc_word2_dont) %>% 
+  filter(n > 20) %>% 
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n), show.legend = FALSE, arrow = a,end_cap = circle(.07, 'inches')) +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void()
