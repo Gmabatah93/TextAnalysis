@@ -49,3 +49,30 @@ _makes use of vocabulary, word structure, part of speech tagging and grammer rel
 
 4. Get results
 5. Evaluate Model
+
+# Latent Dirichlet Allocation
+
+## Generative Model
+> 1. Choose a distribution _(Dirichlet)_ over topics
+> 2. For each word draw a colored _"coin"_ from the distribution
+> 3. Look the distribution _(over terms associated with that coin)_ and draw the word from that distribution
+> 4. Repeat for each document
+
+<img src="Images/LDA1.PNG" width="800">
+
+- Each **Topic** is a distribution over terms in the _fixed_ vocabulary
+- Different **Topics** has different words with different probabilities
+
+## Graphical Model
+<img src="Images/Graphic.PNG" width="500">
+<img src="Images/Graphic_LDA.PNG" width="800">
+
+- Topics:
+  + Each **topic** is a distribution _(Dirichlet)_ over terms
+
+- Topic Assignment 'colored coin"
+  + there's a z "colored coin" for every word.
+
+## Dirichlet Distribution
+
+- The parameter **a** controls the mean shape and sparsity of Thetha  

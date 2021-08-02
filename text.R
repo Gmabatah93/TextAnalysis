@@ -8,7 +8,6 @@ library(quanteda)
 library(topicmodels)
 library(wordcloud)
 library(plotrix)
-library(RWeka)
 library(gutenbergr)
 
 #
@@ -468,7 +467,7 @@ google_cons_Corpus_Clean <- tech_tm_amazon_clean(google_cons_Corpus)
 
 
 # (Topic Modeling) Sherlock Holmes ----
-# (Topic Modeling) Hotel Reviews ----
+# EXAMPLE: Hotel Reviews ----
 
 # Data
 reviews <- read_csv("Data/deceptive-opinion.csv")
@@ -622,16 +621,16 @@ scripts_characters <- left_join(scripts, characters, by = c("character_id" = "id
 
 # EDA
 # - 20 most active characters
-topCharacters <- scripts_characters %>% 
+top20_Characters <- scripts_characters %>% 
   group_by(name) %>% 
   tally(sort = TRUE) %>% 
   top_n(20)
 # - Plot: most active characters
-topCharacters %>% 
+top20_Characters %>% 
   ggplot(aes(reorder(name,n), n)) +
   geom_col() + 
   coord_flip() +
-  labs(title = "Most Active Characeters",
+  labs(title = "Top 20 Active Characeters",
        x = NULL, y = NULL)
 # - top words used
 sc_words <- scripts_characters %>% 
@@ -685,7 +684,7 @@ sc_words %>%
 
 # TF-IDF
 # - top characters
-top6_characters <- head(topCharacters) %>% pull(name)
+top6_characters_names <- head(top20_Characters) %>% pull(name)
 # - bag of words
 sc_BOW <- sc_words %>% 
   unnest_tokens(word, normalized_text) %>% 
@@ -696,7 +695,7 @@ sc_words_Total <- sc_BOW %>%
 sc_BOW <- left_join(sc_BOW, sc_words_Total)
 # - tf_idf
 sc_TFIDF <- sc_BOW %>% 
-  filter(name %in% top6_characters) %>% 
+  filter(name %in% top6_characters_names) %>% 
   bind_tf_idf(word, name, n) %>% 
   arrange(desc(tf_idf)) %>% 
   mutate(word = factor(word, levels = rev(unique(word))))
@@ -820,12 +819,12 @@ visualize_sentiments <- function(SCWords) {
  
 }
 # - top 20 characters
-top20_characters <- head(topCharacters, 20) %>% pull(name)
+top20_Characters_names <- head(top20_Characters, 20) %>% pull(name)
 # - Bag of Words: top 20 
 sc_words_Top20 <- sc_words %>% 
   unnest_tokens(word, normalized_text) %>% 
   filter(name != "NA") %>% 
-  filter(name %in% top20_characters) %>% 
+  filter(name %in% top20_Characters_names) %>% 
   count(name, word, sort = TRUE) %>% 
   ungroup()
 # - senitment: AFINN
@@ -871,6 +870,54 @@ sc_words %>%
   filter(words >= 5) 
 
 
+# Topic Modeling (tidytext)
+# - word cloud
+sc_word_freq <- sc_words %>% 
+  unnest_tokens(input = normalized_text,
+                output = word,
+                drop = TRUE) %>% 
+  anti_join(stop_words) %>% 
+  count(word) %>% 
+  arrange(-n)
+
+wordcloud(words = sc_word_freq$word,
+          freq = sc_word_freq$n,
+          min.freq = 1,
+          max.words = 10,
+          random.order = FALSE,
+          random.color = FALSE,
+          colors=c("DarkOrange", "Blue"))
+
+# - word frequency
+sc_freq <- sc_words %>% 
+  unnest_tokens(input = normalized_text,
+                output = word,
+                drop = TRUE) %>% 
+  anti_join(stop_words) %>% 
+  count(name,word) %>% 
+  arrange(-n)
+# - document term matrix
+sc_dtm <- sc_freq %>% 
+  cast_dtm(document = name,
+           term = word, 
+           value = n)
+# - LDA
+mod_LDA <- LDA(x = sc_dtm, k = 2, method = "Gibbs",
+               control = list(alpha = 1, delta = 0.1, seed = 10005))
+
+terms(mod_LDA, k = 15)
+posterior(mod_LDA)$topics
+tidy(mod_LDA, matrix = "beta")
+tidy(mod_LDA, matrix = "gamma") %>% spread(topic, gamma)
+tidy(mod_LDA, matrix = "gamma") %>% 
+  filter(document %in% top20_Characters_names) %>% 
+  mutate(topic = as.factor(topic)) %>% 
+  ggplot(aes(document, gamma, fill = topic)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.2))
+
+
+
 
 # Topic Modeling 
 # - corpus
@@ -902,3 +949,14 @@ lda_top_terms %>%
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales = "free") +
   coord_flip()
+
+# EXAMPLE: Fake News ----
+news <- read_csv("Data/fake.csv")
+
+set.seed(1234)
+idx <- sample(x = 1:nrow(news),
+              size = 1600,
+              replace = TRUE)
+news_sample <- news[idx,]
+
+# Topic Modeling: Unsupervised
