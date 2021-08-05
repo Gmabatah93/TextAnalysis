@@ -33,7 +33,7 @@ _makes use of vocabulary, word structure, part of speech tagging and grammer rel
 ## Term - Frequency Inverse-Document-Frequency
 <img src="Images/tfidf.PNG" width="500">
 
-# Latent Dirichlet Allocation
+# Latent Dirichlet Allocation: Explanation 1
 <img src="Images/LDA_Algorithm.PNG" width="500">
 
 1. Initialize parameters
@@ -50,7 +50,7 @@ _makes use of vocabulary, word structure, part of speech tagging and grammer rel
 4. Get results
 5. Evaluate Model
 
-# Latent Dirichlet Allocation
+# Latent Dirichlet Allocation: Explanation 2
 
 ## Generative Model
 > 1. Choose a distribution _(Dirichlet)_ over topics
@@ -76,3 +76,29 @@ _makes use of vocabulary, word structure, part of speech tagging and grammer rel
 ## Dirichlet Distribution
 
 - The parameter **a** controls the mean shape and sparsity of Thetha  
+
+
+# Latent Dirichlet Allocation: Explanation 3
+
+<img src="Images/LDA3_Graphic.PNG" width="800">
+<img src="Images/LDA3_Formula.PNG" width="800">
+<img src="Images/LDA3_Formula_FINAL.PNG" width="800">
+
+## Dirichlet Distribution
+<img src="Images/LDA3_Dirichlet1.PNG" width="800">
+<img src="Images/LDA3_Dirichlet2.PNG" width="800">
+
+**Document-Topics:** associates documents with their corresponding topics
+<img src="Images/LDA3_Topics1.PNG" width="800">
+<img src="Images/LDA3_Topics2.PNG" width="300">
+<img src="Images/LDA3_Formula_DocumentTopic.PNG" width="800">
+
+**Topic-Words:** associates topics with their corresponding words
+<img src="Images/LDA3_Words.PNG" width="800">
+<img src="Images/LDA3_Formula_TopicWord.PNG" width="800">
+
+## Gibbs Sampling
+
+**Properties**
+1. Documents are as monochromatic as possible
+2. Words are as monochromatic as possible 
