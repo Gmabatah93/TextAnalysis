@@ -101,4 +101,7 @@ _makes use of vocabulary, word structure, part of speech tagging and grammer rel
 
 **Properties**
 1. Documents are as monochromatic as possible
-2. Words are as monochromatic as possible 
+2. Words are as monochromatic as possible
+
+<img src="Images/LDA3_Gibbs1.PNG" width="800">
+<img src="Images/LDA3_Gibbs2.PNG" width="800">
