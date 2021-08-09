@@ -960,3 +960,167 @@ idx <- sample(x = 1:nrow(news),
 news_sample <- news[idx,]
 
 # Topic Modeling: Unsupervised
+
+# EXAMPLE Airbnb: EDA ----
+
+# Data
+airbnb_reviews <- read_rds("Data/bos_reviews.rds")
+airbnb_polarity <- read_rds("Data/bos_pol.rds")
+
+# EDA: polarity
+# - per id
+airbnb_polarity$all$polarity %>% summary()
+airbnb_polarity$all %>% 
+  ggplot(aes(polarity, ..density..)) +
+  geom_histogram(binwidth = 0.25, fill = "#bada55", colour = "grey60") +
+  geom_density(size = 0.75)
+
+# EXAMPLE Airbnb: Toeknization (QDAP) ----
+
+# Tokenization: QDAP
+# - positve polarity comments
+airbnb_reviews_positive <- airbnb_reviews %>% 
+  mutate(polarity = airbnb_polarity$all$polarity) %>% 
+  filter(polarity > 0) %>% 
+  pull(comments) %>% 
+  paste(collapse = " ")
+# - negative polarity comments
+airbnb_reviews_negative <- airbnb_reviews %>% 
+  mutate(polarity = airbnb_polarity$all$polarity) %>% 
+  filter(polarity < 0) %>% 
+  pull(comments) %>% 
+  paste(collapse = " ")
+# - corpus
+airbnb_Corpus <- 
+  c(airbnb_reviews_positive, airbnb_reviews_negative) %>% 
+  VectorSource() %>% 
+  VCorpus()
+airbnb_Corpus[[1]] %>% content() # Positive
+airbnb_Corpus[[2]] %>% content() # Negative
+# - clean corpus
+clean_Corpus <- function(corpus){
+  corpus <- tm_map(corpus, content_transformer(replace_abbreviation))
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, removeNumbers)
+  corpus <- tm_map(corpus, removeWords, c(stopwords("en"), "coffee"))
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  corpus <- tm_map(corpus, stripWhitespace)
+  return(corpus)
+}
+airbnb_Corpus_clean <- airbnb_Corpus %>% clean_Corpus()
+airbnb_Corpus_clean[[1]] %>% content() # Positive
+airbnb_Corpus_clean[[2]] %>% content() # Negative
+
+# - document term matrix
+airbnb_DTM <- airbnb_Corpus_clean %>% DocumentTermMatrix()
+airbnb_DTM %>% tidy()
+airbnb_DTM_M <- as.matrix(airbnb_DTM)
+airbnb_DTM_M %>% dim()
+# - term document matrix
+airbnb_reviews_TFIDF <- 
+  TermDocumentMatrix(x = airbnb_reviews_Corpus,
+                     control = list(
+                       weighting = weightTfIdf,
+                       removePunctuation = TRUE,
+                       stopwords = stopwords(kind = "en")
+                     ))
+
+
+
+# EXAMPLE Airbnb: Tokenization (tidytext) ----
+# Bag of Words 
+airbnb_tidy <- airbnb_reviews %>% 
+  unnest_tokens(word, comments) %>% 
+  group_by(id) %>% 
+  mutate(original_word_order = seq_along(word)) %>% 
+  anti_join(stop_words)
+
+# Sentiment Analysis: bing
+airbnb_bing <- airbnb_tidy %>% 
+  inner_join(get_sentiments("bing")) %>%
+  ungroup() 
+airbnb_bing %>% 
+  count(sentiment) %>% 
+  ggplot(aes(factor(sentiment), n)) +
+  geom_col() + 
+  labs(x = NULL, y = NULL) + 
+  ggtitle("Bing: Positive & Negative Words")
+
+airbnb_bing_spread <- airbnb_bing %>% 
+  group_by(id) %>% count(sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(polarity = positive - negative)
+
+airbnb_tidy_polarity <- airbnb_bing_spread %>% 
+  count(id) %>% 
+  inner_join(airbnb_bing) %>% 
+  mutate(pol = ifelse(polarity >= 0, "Positive","Negative"))
+airbnb_tidy_polarity %>% 
+  ggplot(aes(polarity, n, color = pol)) + 
+  geom_point(alpha = 0.25) +
+  geom_smooth(method = "lm", se = FALSE) +
+  ggtitle("Relationship between word effort & polarity")
+
+# Sentiment Analysis: afinn
+airbnb_afinn <- airbnb_tidy %>% 
+  inner_join(get_sentiments("afinn"))
+airbnb_afinn %>%
+  ungroup() %>% 
+  count(value) %>% 
+  ggplot(aes(factor(value), n)) +
+  geom_col() +
+  labs(x = NULL, y = NULL) + 
+  ggtitle("Afinn: Scores")
+airbnb_afinn %>% 
+  count(id,value) %>% 
+  summarise(total_value = sum(value * n))
+
+# Sentiment Analysis: nrc
+airbnb_nrc <- airbnb_tidy %>% 
+  inner_join(get_sentiments("nrc")) %>% 
+  ungroup()
+airbnb_nrc %>% 
+  count(sentiment) %>% 
+  ggplot(aes(sentiment, n)) +
+  geom_col() +
+  labs(x = NULL, y = NULL) + 
+  ggtitle("NRC:")
+airbnb_nrc %>% 
+  count(sentiment) %>%
+  summarize(total_count = sum(n))
+
+
+airbnb_reviews_TFIDF_M <- as.matrix(airbnb_reviews_TFIDF)
+colnames(airbnb_reviews_TFIDF_M) <- c("positive","negative")
+airbnb_reviews_TFIDF_M_ordered_pos <- order(airbnb_reviews_TFIDF_M[,1], decreasing = TRUE)
+airbnb_reviews_TFIDF_M[airbnb_reviews_TFIDF_M_ordered_pos, ] %>% head(10)
+airbnb_reviews_TFIDF_M_ordered_neg <- order(airbnb_reviews_TFIDF_M[,2], decreasing = TRUE)
+airbnb_reviews_TFIDF_M[airbnb_reviews_TFIDF_M_ordered_neg, ] %>% head(10)
+comparison.cloud(term.matrix = airbnb_reviews_TFIDF_M,
+                 max.words = 20,
+                 colors = c("darkgreen", "darkred"))
+
+# - grade inflation
+airbnb_reviews$scaled_polarity <- scale(airbnb_polarity$all$polarity)
+airbnb_positive_comments <- subset(airbnb_reviews$comments, airbnb_reviews$scaled_polarity > 0)
+airbnb_negative_comments <- subset(airbnb_reviews$comments, airbnb_reviews$scaled_polarity < 0)
+airbnb_postive_terms <- paste(airbnb_positive_comments, collapse = " ")
+airbnb_negative_terms <- paste(airbnb_negative_comments, collapse = " ")
+airbnb_terms <- c(airbnb_postive_terms, airbnb_negative_terms)
+airbnb_Corpus <- VCorpus(VectorSource(airbnb_terms))
+airbnb_TDM <- TermDocumentMatrix(
+  airbnb_Corpus,
+  control = list(
+    weighting = weightTfIdf,
+    removePunctuation = TRUE, 
+    stopwords = stopwords(kind = "en")
+  )
+)
+
+airbnb_TDM_M <- as.matrix(airbnb_TDM)
+colnames(airbnb_TDM_M) <- c("positive", "negative")
+comparison.cloud(airbnb_TDM_M,
+                 max.words = 100,
+                 colors = c("darkgreen", "darkred"))
+
+# EXAMPLE: Music lyrics polairty ----
