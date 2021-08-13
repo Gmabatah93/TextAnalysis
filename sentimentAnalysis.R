@@ -131,7 +131,29 @@ rm_bing %>%
   count(season_num, sentiment) %>% 
   spread(sentiment, n) %>% 
   mutate(overall = positive - negative)
-
+# - Seasons: Top Words
+rm_bing %>% 
+  count(word, sentiment) %>% 
+  group_by(sentiment) %>% 
+  top_n(25, n) %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ sentiment, scales = "free") +
+  labs(title = "Top 25 Words",
+       x = NULL, y = NULL)
+rm_bing %>% 
+  count(season_num, word, sentiment) %>% 
+  group_by(season_num, sentiment) %>% 
+  top_n(10, n) %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(sentiment ~ season_num, scales = "free") +
+  theme_bw() +
+  labs(
+    title = "Top 25 Words by Season",
+    x = NULL, y = NULL
+  )
+  
 # - Characters
 rm_bing %>% 
   filter(name %in% rm_characters) %>% 
@@ -154,3 +176,137 @@ rm_bing %>%
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+# - Characters: Top Words
+rm_bing %>% 
+  filter(name %in% rm_characters) %>% 
+  count(name, word, sentiment) %>% 
+  group_by(name) %>% 
+  top_n(5, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
+  theme_bw() +
+  labs(title = "Top Words by Character",
+       x = NULL, y = NULL)
+
+rm_bing %>% 
+  filter(name %in% rm_characters,
+         season_num == 1) %>% 
+  count(name, word, sentiment) %>% 
+  group_by(name) %>% 
+  top_n(5, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
+  theme_bw() +
+  labs(title = "Season 1: Top Words by Character",
+       x = NULL, y = NULL)
+rm_bing %>% 
+  filter(name %in% rm_characters,
+         season_num == 2) %>% 
+  count(name, word, sentiment) %>% 
+  group_by(name) %>% 
+  top_n(3, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
+  theme_bw() +
+  labs(title = "Season 2: Top Words by Character",
+       x = NULL, y = NULL)
+rm_bing %>% 
+  filter(name %in% rm_characters,
+         season_num == 3) %>% 
+  count(name, word, sentiment) %>% 
+  group_by(name) %>% 
+  top_n(3, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
+  theme_bw() +
+  labs(title = "Season 3: Top Words by Character",
+       x = NULL, y = NULL)
+
+
+# NRC
+rm_nrc <- rm_tidy %>% inner_join(get_sentiments("nrc"))
+rm_nrc %>% count(sentiment)  %>% arrange(-n)
+
+# - Season
+rm_nrc %>% 
+  ggplot(aes(sentiment, fill = sentiment)) +
+  geom_bar(show.legend = FALSE) +
+  facet_wrap(~season_num) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+rm_nrc %>% 
+  count(season_num, sentiment) %>% 
+  spread(sentiment, n)
+# - Seasons: Top Words
+rm_nrc %>% 
+  count(word, sentiment) %>% 
+  group_by(sentiment) %>% 
+  top_n(10, n) %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ sentiment, scales = "free", nrow = 2) +
+  labs(title = "Top 25 Words",
+       x = NULL, y = NULL) +
+  theme_bw()
+
+# - Characters
+rm_nrc %>% 
+  filter(name %in% rm_characters) %>% 
+  count(name, word, sentiment) %>% 
+  group_by(name) %>% 
+  top_n(5, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
+  theme_bw() +
+  labs(title = "Top Words by Character",
+       x = NULL, y = NULL)
+
+rm_nrc %>% 
+  filter(name %in% rm_characters,
+         season_num == 1) %>% 
+  count(name, word, sentiment) %>% 
+  group_by(name) %>% 
+  top_n(5, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
+  theme_bw() +
+  labs(title = "Season 1: Top Words by Character",
+       x = NULL, y = NULL)
+rm_bing %>% 
+  filter(name %in% rm_characters,
+         season_num == 2) %>% 
+  count(name, word, sentiment) %>% 
+  group_by(name) %>% 
+  top_n(3, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
+  theme_bw() +
+  labs(title = "Season 2: Top Words by Character",
+       x = NULL, y = NULL)
+rm_bing %>% 
+  filter(name %in% rm_characters,
+         season_num == 3) %>% 
+  count(name, word, sentiment) %>% 
+  group_by(name) %>% 
+  top_n(3, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
+  theme_bw() +
+  labs(title = "Season 3: Top Words by Character",
+       x = NULL, y = NULL)
