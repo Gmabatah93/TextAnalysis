@@ -1,409 +1,663 @@
 library(tidyverse)
+library(forcats)
+library(lubridate)
 theme_set(theme_minimal())
 library(tidytext)
 library(tm)
 library(qdap)
 library(SnowballC)
-library(quanteda)
 library(topicmodels)
 library(wordcloud)
 library(plotrix)
 library(gutenbergr)
 
 #
-# (Tidytext) Twitter: Data ----
+# Twitter: Data ----
+
+# Data
 twitter_data <- read_rds("Data/twitter_data.rds")
+
 # EDA
+# - Counts:
+twitter_data %>% count(complaint_label) 
+twitter_data %>% count(usr_verified)
+twitter_data %>% summarise(avg = mean(usr_followers_count)) # 4,189
+# - Summary
 twitter_data %>% 
-  filter(complaint_label == "Complaint")
+  ggplot(aes(complaint_label, fill = usr_verified)) +
+  geom_bar(position = "fill") +
+  labs(title = "% of Users Verified",
+       subtitle = "Complaint: (1650/26) | Non-Complaint: (5277/91)") +
+  theme(axis.title = element_blank())
+# - Summary: Followers x ( Complaint & Verified )
+twitter_data %>% 
+  ggplot(aes(complaint_label, usr_followers_count, fill = usr_verified)) +
+  geom_col(position = "dodge") +
+  labs(title = "User Follower Count",
+       subtitle = "Compaint ( 111,268/ 1,532 ) | Non-Complaint ( 140,301 / 2,145 )") +
+  theme(axis.title = element_blank())
+#
+# Twitter: QDAP ----
+# - Corpus
+twitter_Corpus <- twitter_data$tweet_text %>% 
+  VectorSource() %>% 
+  VCorpus()
 
-twitter_data %>% 
-  group_by(complaint_label) %>% 
-  summarize(
-    avg_followers = mean(usr_followers_count),
-    min_followers = min(usr_followers_count),
-    max_followers = max(usr_followers_count)
-  )
+clean_Corpus_twitter <- function(corpus) {
+  corpus = tm_map(corpus, removePunctuation)
+  corpus = tm_map(corpus, content_transformer(tolower))
+  corpus = tm_map(corpus, removeWords, words = c(stopwords("en"),
+                                                 "united","klm","americanair","delta",
+                                                 "southwestair","usairways","britishairways",
+                                                 "jetblue","ryanair",
+                                                 "just","can","get","will"))
+  corpus = tm_map(corpus, stripWhitespace)
+  
+  return(corpus)
+}
 
-twitter_data %>% 
-  filter(complaint_label == "Complaint") %>% 
-  count(usr_verified)
+twitter_Corpus_clean <- clean_Corpus_twitter(twitter_Corpus)
 
-twitter_data %>% 
-  group_by(usr_verified) %>% 
-  summarize(
-    avg_followers = mean(usr_followers_count),
-    n = n())
-# (Tidytext) Twitter: Tokenization ----
-tidy_twitter <- twitter_data %>% 
+# - Term Document Matrix
+twitter_tdm <- TermDocumentMatrix(twitter_Corpus_clean)
+twitter_tdm_M <- as.matrix(twitter_tdm)
+twitter_tf <- tibble(
+  word = rownames(twitter_tdm_M),
+  freq = rowSums(twitter_tdm_M)
+) %>% arrange(-freq)
+
+twitter_tf %>%
+  top_n(15, freq) %>% 
+  ggplot(aes(freq, fct_reorder(word, freq))) +
+  geom_col()
+
+# - TfIdf
+clean_Corpus_twitter_noStops <- function(corpus) {
+  corpus = tm_map(corpus, removePunctuation)
+  corpus = tm_map(corpus, content_transformer(tolower))
+  corpus = tm_map(corpus, stripWhitespace)
+  
+  return(corpus)
+}
+twitter_Corpus_nStops <- clean_Corpus_twitter_noStops(twitter_Corpus)
+twitter_tf_idf <- TermDocumentMatrix(twitter_Corpus_nStops,
+                                     control = list(weighting = weightTfIdf))
+twitter_tf_idf_M <- as.matrix(twitter_tf_idf)
+twitter_tf_idf <- tibble(
+  word = rownames(twitter_tf_idf_M),
+  freq = rowSums(twitter_tf_idf_M)
+) %>% arrange(-freq)
+
+#
+# Twitter: tidytext ----
+
+# Bag of Words
+twitter_tidy <- twitter_data %>% 
   unnest_tokens(word, tweet_text) %>% 
-  anti_join(stop_words)
+  anti_join(
+    bind_rows(stop_words,
+              tibble(word = c("http","win","t.co", "flight",
+                              "united","klm","americanair","delta","southwestair",
+                              "usairways","british_airways","britishairways","jetblue","ryanair",
+                              "aircanada","alaskaair","virginamerica",
+                              "de","en","la","el","es","se",
+                              1:9),
+                     lexicon = "CUSTOM"))
+    )
 
-tidy_twitter %>% 
+# Term Frequecy 
+twitter_tf <- twitter_tidy %>% 
   count(word) %>% 
-  arrange(desc(n))
+  arrange(-n)
 
-tidy_twitter %>% 
-  filter(complaint_label == "Complaint") %>% 
-  count(word) %>% 
-  arrange(desc(n))
-# - Word Counts
-tidy_twitter %>% 
-  filter(complaint_label == "Complaint") %>% 
-  count(word) %>% 
-  filter(n > 100) %>% 
-  ggplot(aes(x = word, y = n)) +
-  geom_col() +
-  coord_flip() +
-  ggtitle("Complaint Word Counts")
-
-tidy_twitter %>% 
-  filter(complaint_label == "Non-Complaint") %>% 
-  count(word) %>% 
-  filter(n > 150) %>% 
-  ggplot(aes(x = word, y = n)) +
-  geom_col() +
-  coord_flip() +
-  ggtitle("Non-Complaint Word Counts")
-
-# - Stop Words
-custom_stop_words <- tibble(
-  word = c("http","win","t.co"),
-  lexicon = "CUSTOM"
-)
-stop_words_2 <- stop_words %>% 
-  bind_rows(custom_stop_words)
-
-tidy_twitter <- tidy_twitter %>% 
-  anti_join(stop_words_2)
-
-tidy_twitter %>% 
-  filter(complaint_label == "Non-Complaint") %>% 
-  count(word) %>% 
-  filter(n > 100) %>% 
-  mutate(word2 = fct_reorder(word, n)) %>% 
-  ggplot(aes(x = word2, y = n)) +
-  geom_col() +
-  coord_flip() +
-  ggtitle("Non-Complaint Word Counts")
-
-tidy_twitter %>%
-  count(word, complaint_label) %>%
-  group_by(complaint_label) %>%
-  top_n(20, n) %>%
-  ungroup() %>%
-  mutate(word2 = fct_reorder(word, n)) %>% 
-  ggplot(aes(x = word2, y = n, fill = complaint_label)) +
+# - Visual: Complaints
+twitter_tidy %>% 
+  group_by(complaint_label) %>% 
+  count(word) %>%
+  arrange(-n) %>% 
+  top_n(25) %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = complaint_label)) +
   geom_col(show.legend = FALSE) +
-  facet_wrap(~ complaint_label, scales = "free_y") +
-  coord_flip() +
-  ggtitle("Twitter Word Counts")
+  facet_wrap(~ complaint_label, scales = "free") +
+  labs(x = NULL, y = NULL) +
+  theme_bw()
+# - Visual: User-Verified
+twitter_tidy %>% 
+  group_by(usr_verified) %>% 
+  count(word) %>%
+  arrange(-n) %>% 
+  top_n(25) %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = usr_verified)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ usr_verified, scales = "free") +
+  labs(x = NULL, y = NULL) +
+  theme_bw()
 
-# WordClouds
-library(wordcloud)
-
-word_counts <- tidy_twitter %>% 
-  anti_join(stop_words_2) %>% 
-  count(word)
+# - Wordcloud
 wordcloud(
-  words = word_counts$word, 
-  freq = word_counts$n, 
+  words = twitter_tf$word,
+  freq = twitter_tf$n,
   max.words = 30
 )
 
-word_counts <- tidy_twitter %>%
-  anti_join(stop_words_2) %>% 
-  filter(complaint_label == "Complaint") %>% 
-  count(word)
+# Twitter: Sentiment Analysis ----
 
-wordcloud(
-  words = word_counts$word, 
-  freq = word_counts$n, 
-  max.words = 50,
-  colors = "red"
-)
+# BING
+twitter_bing <- twitter_tidy %>% inner_join(get_sentiments("bing")) 
+# - Summary:
+twitter_bing %>% count(sentiment) %>% 
+  ggplot(aes(sentiment, n, fill = sentiment)) +
+  geom_col() +
+  labs(title = "Negative = 2888 | Positive = 1871")
+# - Summary: (Complaint Label)
+twitter_bing %>% 
+  ggplot(aes(complaint_label, fill = sentiment)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Complaint",
+    subtitle = "Complaint: ( 1456 / 394 ) | Non-Complaint: ( 1431 / 1477 )",
+    x = NULL, y = NULL
+  ) 
+# - Summary: (User Verified)
+twitter_bing %>% 
+  ggplot(aes(usr_verified, fill = sentiment)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "User Verified: Positive Negative",
+    subtitle = "Not-Verified: ( 2852 / 1844 ) | Verified: ( 36 / 27 )",
+    x = NULL, y = NULL
+  ) 
+# - Summary: (Complaint Label x User Verified)
+twitter_bing %>% 
+  ggplot(aes(complaint_label, fill = sentiment)) +
+  geom_bar(position = "dodge") +
+  facet_wrap(~ usr_verified, scales = "free") +
+  labs(
+    title = "Complaint x User Verified",
+    x = NULL, y = NULL
+  ) + theme_bw()
 
-#
-# (Tidytext) Twitter: Sentiment Analysis ----
-sentiment_twitter <- tidy_twitter %>% 
-  inner_join(get_sentiments("nrc"))
-sentiment_twitter %>% 
-  count(sentiment) %>% 
-  arrange(desc(n))
+# - Sentiment: Avg User Follower Count
+twitter_bing %>% 
+  group_by(sentiment) %>% 
+  summarise(Avg_Usr_Follower_Count = mean(usr_followers_count)) %>% 
+  ggplot(aes(sentiment, Avg_Usr_Follower_Count)) +
+  geom_col() +
+  labs(title = "Sentiment: Avg User Follower Count",
+       x= NULL, y = NULL)
+twitter_bing %>% 
+  group_by(sentiment, complaint_label, usr_verified) %>% 
+  summarise(Avg_Usr_Follower_Count = mean(usr_followers_count)) %>% 
+  ggplot(aes(complaint_label, Avg_Usr_Follower_Count, fill = sentiment)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ usr_verified, scales = "free") +
+  labs(
+    title = "Sentiment: Avg Follower Count by (Complaint & Verified)",
+    x = NULL, y = NULL
+  ) + theme_bw()
+  
+# - Words: Top Words
+twitter_bing %>% 
+  count(word, sentiment) %>% 
+  group_by(sentiment) %>% 
+  top_n(10, n) %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ sentiment, scales = "free") +
+  labs(x = NULL, y = NULL) +
+  theme_bw()
+# - Words: Top Words (Complaint) 
+twitter_bing %>% 
+  count(complaint_label, sentiment, word) %>% 
+  group_by(sentiment, complaint_label) %>% 
+  top_n(10, n) %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_grid(sentiment ~ complaint_label, 
+             scales = "free") +
+  labs(x = NULL, y = NULL) +
+  theme_bw()
+# - Words: Top Words (User Verified) 
+twitter_bing %>% 
+  filter(usr_verified == "TRUE") %>% 
+  count(sentiment, word) %>% 
+  group_by(sentiment) %>% 
+  top_n(5, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, 
+             scales = "free") +
+  labs(x = NULL, y = NULL) +
+  theme_bw()
 
-word_counts <- tidy_twitter %>% 
-  inner_join(get_sentiments("nrc")) %>% 
-  filter(sentiment %in% c("positive", "fear", "trust")) %>%
+
+
+
+
+# NRC
+twitter_nrc <- twitter_tidy %>% inner_join(get_sentiments("nrc"))
+
+# - Summary: Counts
+twitter_nrc %>% count(sentiment) %>% 
+  ggplot(aes(sentiment, n)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 45)) +
+  labs(
+    title = "Counts",
+    x = NULL, y = NULL
+  )
+# - Summary: Counts (Complaint Label)
+twitter_nrc %>% 
+  ggplot(aes(sentiment, fill = complaint_label)) +
+  geom_bar(show.legend = FALSE) +
+  facet_wrap(~ complaint_label, scales = "free") +
+  labs(
+    title = "Counts by Complaint Label"
+  ) + 
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+twitter_nrc %>% 
+  count(complaint_label, sentiment) %>% 
+  spread(sentiment,n)
+
+# - Summary: Counts (User Verified)
+twitter_nrc %>% 
+  ggplot(aes(sentiment, fill = usr_verified)) +
+  geom_bar(show.legend = FALSE) +
+  facet_wrap(~ usr_verified, scales = "free") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+twitter_nrc %>% 
+  count(usr_verified, sentiment) %>% 
+  spread(sentiment,n)
+
+# - Words: Top Words
+twitter_nrc %>% 
   count(word, sentiment) %>% 
   group_by(sentiment) %>% 
   top_n(10, n) %>% 
   ungroup() %>% 
-  mutate(word2 = fct_reorder(word, n))
-word_counts %>% 
-  ggplot(aes(x = word2, y = n, fill = sentiment)) +
+  mutate(word = fct_reorder(word, n)) %>% 
+  ggplot(aes(n, word, fill = sentiment)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ sentiment, scales = "free") +
-  coord_flip() +
-  labs(
-    title = "Sentiment Word Counts",
-    x = "Words"
-  )
+  theme_bw()
 
-tidy_twitter %>% 
-  inner_join(get_sentiments("nrc")) %>% 
-  count(complaint_label, sentiment) %>% 
-  spread(sentiment, n)
 
-tidy_twitter %>% 
-  inner_join(get_sentiments("afinn")) %>% 
+
+# AFINN
+twitter_afinn <- twitter_tidy %>% inner_join(get_sentiments("afinn"))
+# - Summary: Count
+twitter_afinn %>% count(value)
+# - Summary: Count (Complaint Label)
+twitter_afinn %>% 
+  group_by(complaint_label) %>% 
+  summarise(agg_value = sum(value)) %>% 
+  spread(complaint_label, agg_value) %>% 
+  mutate(Overall = Complaint + `Non-Complaint`)
+# - Summary: Count (User Verified)
+twitter_afinn %>% 
+  group_by(usr_verified) %>% 
+  summarise(agg_value = sum(value)) %>% 
+  spread(usr_verified, agg_value) %>% 
+  mutate(Overall = `FALSE` + `TRUE`)
+# - Summary: Count (Complaint Label & User Verified)
+twitter_afinn %>% 
   group_by(complaint_label, usr_verified) %>% 
-  summarize(aggregate_value = sum(value)) %>% 
-  spread(complaint_label, aggregate_value) %>% 
-  mutate(overall_sentiment = Complaint + `Non-Complaint`)
+  summarise(agg_value = sum(value)) %>% 
+  spread(complaint_label, agg_value) %>% 
+  mutate(overall = Complaint + `Non-Complaint`)
 
-tidy_twitter %>% 
-  inner_join(get_sentiments("bing")) %>% 
-  count(complaint_label, sentiment) %>% 
-  spread(sentiment, n) %>% 
-  mutate(overall_sentiment = positive - negative) %>% 
-  ggplot(aes(x = complaint_label, y = overall_sentiment, fill = as.factor(complaint_label))) +
-  geom_col(show.legend = FALSE) +
-  coord_flip() + 
-  labs(
-    title = "Overall Sentiment by Complaint Label",
-    subtitle = "Airline Twitter Data"
-  )
-#
-# (Tidytext) Twitter: Topic Model ----
-library(topicmodels)
 
-# - dtm
-dtm_twitter <- tidy_twitter %>% 
+# Twitter: Topic Modeling ----
+# - document term matrix
+twitter_dtm <- twitter_tidy %>% 
   count(word, tweet_id) %>% 
-  cast_dtm(tweet_id, word, n)
-# - LDA
-lda_out <- LDA(
-  dtm_twitter,
-  k = 2,
+  cast_dtm(document = tweet_id,
+           term = word,
+           value = n)
+twitter_dtm_M <- twitter_dtm %>% as.matrix()
+# - LDA 2
+twitter_LDA_2 <- LDA(
+  x = twitter_dtm, k = 2,
   method = "Gibbs",
   control = list(seed = 42)
 )
+twitter_Beta_2 <- twitter_LDA_2 %>% 
+  tidy(matrix = "beta") %>% 
+  group_by(topic) %>% 
+  top_n(15, beta) %>% 
+  ungroup() %>% 
+  mutate(term = fct_reorder(term, beta))
+twitter_Beta_2 %>% 
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col() +
+  facet_wrap(~ topic, scales = "free")
+# - LDA 3
+twitter_LDA_3 <- LDA(
+  x = twitter_dtm, k = 3,
+  method = "Gibbs",
+  control = list(seed = 42)
+)
+twitter_Beta_3 <- twitter_LDA_3 %>% 
+  tidy(matrix = "beta") %>% 
+  group_by(topic) %>% 
+  top_n(15, beta) %>% 
+  ungroup() %>% 
+  mutate(term = fct_reorder(term, beta))
+twitter_Beta_3 %>% 
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = F) +
+  facet_wrap(~ topic, scales = "free") +
+  theme_bw()
+#
+# Roomba: Data ----
 
-lda_out %>% glimpse()
-lda_topics <- lda_out %>% tidy(matrix = "beta")
-lda_topics %>% arrange(desc(beta))
-# (Tidytext) Roomba ----
+# Data
+roomba_reviews <- read_csv("Data/Roomba Reviews.csv")
 
-# (QDAP) Drinks: Data ----
-# - Coffee
+# EDA
+# - product: count
+roomba_reviews %>% count(Product)
+roomba_reviews %>% 
+  group_by(Product) %>% 
+  summarise(Avg = mean(Stars))
+
+# Roomba: QDAP ----
+# Roomba: tidytext ----
+
+# Bag of Words
+roomba_tidy <- roomba_reviews %>% 
+  mutate(id = row_number()) %>% 
+  unnest_tokens(word, Review) %>% 
+  anti_join(
+    bind_rows(stop_words,
+              tibble(word = c("roomba",2),
+                     lexicon = "CUSTOM"))
+    ) %>% 
+  select(id, everything())
+
+# Term Frequency
+roomba_tf <- roomba_tidy %>% 
+  count(word) %>% 
+  arrange(-n)
+roomba_tf_Product <- roomba_tidy %>% 
+  count(word, Product) %>% 
+  arrange(-n)
+# - Visual
+roomba_tf %>%
+  filter(n > 300) %>% 
+  ggplot(aes(n, fct_reorder(word, n))) +
+  geom_col()
+# - Visual: Count by Product
+roomba_tf_Product %>% 
+  group_by(Product) %>% top_n(10, n) %>% 
+  ungroup() %>% 
+  mutate(word = fct_reorder(word,n)) %>% 
+  ggplot(aes(n, word, fill = Product)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~Product, scales = "free") +
+  theme_bw()
+# - WordCloud
+wordcloud(
+  words = roomba_tf$word,
+  freq = roomba_tf$n,
+  max.words = 30
+)
+
+# Senitment Analysis
+# - loughran
+roomba_loughran <- roomba_tidy %>% 
+  inner_join(get_sentiments("loughran"))
+roomba_loughran %>% count(sentiment)
+roomba_loughran %>% count(word, sentiment) %>% 
+  arrange(-n)
+
+roomba_loughran %>% 
+  count(word, sentiment) %>% 
+  group_by(sentiment) %>% 
+  top_n(10, n) %>% 
+  ungroup() %>% 
+  mutate(word = fct_reorder(word, n)) %>% 
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ sentiment, scales = "free") +
+  theme_bw()
+roomba_loughran %>% 
+  filter(sentiment %in% c("positive","negative")) %>% 
+  count(word, sentiment) %>% 
+  group_by(sentiment) %>% 
+  top_n(10, n) %>% 
+  ungroup() %>% 
+  mutate(word = fct_reorder(word, n)) %>% 
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ sentiment, scales = "free") +
+  theme_bw()
+
+# - bing
+roomba_bing <- roomba_tidy %>% 
+  inner_join(get_sentiments("bing"))
+roomba_bing_Stars <- roomba_bing %>% 
+  count(Stars, sentiment) %>% 
+  spread(sentiment, n) %>% 
+  mutate(overall = positive - negative,
+         Stars = as.factor(Stars)) %>% 
+  mutate(Stars = fct_reorder(Stars, overall))
+roomba_bing_Stars %>% 
+  ggplot(aes(overall, Stars, fill = Stars)) +
+  geom_col(show.legend = FALSE)  +
+  ggtitle("Overall Sentiment by Stars")
+
+
+# Topic Modeling
+# - document term matrix
+roomba_dtm <- roomba_tidy %>% 
+  cast_dtm(document = id,
+           term = word, 
+           value = n)
+roomba_dtm
+# - LDA 2
+roomba_LDA_2 <- LDA(
+  x = roomba_dtm, k = 2,
+  method = "Gibbs",
+  control = list(seed = 42)
+)
+# - LDA 2: word probs
+roomba_Beta_2 <- roomba_LDA_2 %>% 
+  tidy(matrix = "beta") %>% 
+  group_by(topic) %>% 
+  top_n(15, beta) %>% 
+  ungroup() %>% 
+  mutate(term = fct_reorder(term, beta))
+roomba_Beta_2 %>% 
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  theme_bw()
+
+
+# - LDA 3
+roomba_LDA_3 <- LDA(
+  x = roomba_dtm, k = 3,
+  method = "Gibbs",
+  control = list(seed = 42)
+)
+# - LDA 3: word probs
+roomba_Beta_3 <- roomba_LDA_3 %>% 
+  tidy(matrix = "beta") %>% 
+  group_by(topic) %>% 
+  top_n(15, beta) %>% 
+  ungroup() %>% 
+  mutate(term = fct_reorder(term, beta))
+roomba_Beta_3 %>% 
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  theme_bw()
+#
+# Drinks: Data ----
+# Coffee
 coffee <- read_csv("https://assets.datacamp.com/production/repositories/19/datasets/27a2a8587eff17add54f4ba288e770e235ea3325/coffee.csv")
 coffee_tweets <- coffee$text
-# - Chardonnay
+# Chardonnay
 chardonnay <- read_csv("https://assets.datacamp.com/production/repositories/19/datasets/13ae5c66c3990397032b6428e50cc41ac6bc1ca7/chardonnay.csv")
 chardonnay_tweets <- chardonnay$text
 
-# (QDAP) Drinks: Tokenization ----
+# Drinks: QDAP ----
 
 # Coffee
-# - source
-coffee_source <- VectorSource(coffee_tweets)
 # - corpus
-coffee_corpus <- VCorpus(coffee_source)
-coffee_corpus[[227]] %>% content()
+coffee_Corpus <- coffee_tweets %>% 
+  VectorSource() %>% 
+  VCorpus()
+coffee_Corpus[[227]] %>% content()
 # - clean corpus
-stops_Coffee <- c("coffee", "bean", "mug", stopwords("en"))
-
 clean_corpus_Coffee <- function(corpus) {
   corpus <- tm_map(corpus, removePunctuation)
   corpus <- tm_map(corpus, content_transformer(tolower))
-  corpus <- tm_map(corpus, removeWords, words = stops_Coffee)
+  corpus <- tm_map(corpus, removeWords, words = c(stopwords("en"), 
+                                                  "coffee", "bean", "mug"))
   corpus <- tm_map(corpus, stripWhitespace)
   return(corpus)
 }
+coffee_Corpus_Clean <- clean_corpus_Coffee(coffee_Corpus)
+coffee_Corpus_Clean[[227]] %>% content()
+# - Term Document Matix
+coffee_tdm <- TermDocumentMatrix(coffee_Corpus_Clean)
+coffee_tdm_M <- as.matrix(coffee_tdm)
+coffee_tdm_M[c("star", "starbucks"), 25:35]
 
-coffee_corpus_clean <- clean_corpus_Coffee(coffee_corpus)
-coffee_corpus_clean[[227]] %>% content()
-# - Document Term Matrix
-coffee_dtm <- DocumentTermMatrix(coffee_corpus_clean)
-coffee_dtm_matrix <- as.matrix(coffee_dtm)
-coffee_dtm_matrix[25:35, c("star", "starbucks")]
-# -- 2-gram
-coffee_tokenizer <- function(x) {
-  NGramTokenizer(x, Weka_control(min = 2, max = 2))
-}
+coffee_tdm %>% tidy() %>% 
+  count(term) %>% arrange(-n) # tidytext
 
-coffee_dtm_bigram <- DocumentTermMatrix(
-  coffee_corpus_clean, 
-  control = list(tokenize = coffee_tokenizer)
+# - Term Document Matix: TfIdf
+coffee_tf_idf <- TermDocumentMatrix(coffee_Corpus, 
+                                    control = list(weighting = weightTfIdf))
+coffee_tf_idf_M <- as.matrix(coffee_tf_idf)
+coffee_tf_idf_M[c("coffee","espresso","latte"), 1:5]
+
+# - Visual: Term Frequecy
+coffee_tf <- tibble(
+  Word = rownames(coffee_tdm_M),
+  Freq = rowSums(coffee_tdm_M)
+) %>% arrange(-Freq)
+
+coffee_tf %>%
+  top_n(10, Freq) %>% 
+  ggplot(aes(Freq, fct_reorder(Word, Freq))) +
+  geom_col()
+
+# - Visual: Word Cloud
+wordcloud(
+  words = coffee_tf$Word,
+  freq = coffee_tf$Freq,
+  max.words = 50,
+  colors = c("grey80", "darkgoldenrod1", "tomato")
 )
-coffee_dtm_bigram_Matrix <- as.matrix(coffee_dtm_bigram)
-coffee_BOW_bigram <- coffee_dtm_bigram_Matrix %>% 
-  colSums() %>% as_data_frame(rownames = "word") %>% 
-  arrange(desc(value))
-
-# - Term Document Matrix
-coffee_tdm <- TermDocumentMatrix(coffee_corpus_clean)
-coffee_tdm_matrix <- as.matrix(coffee_tdm)
-coffee_tdm_matrix[c("star", "starbucks"), 25:35]
-coffee_tdm_matrix[c("coffee", "espresso", "latte"), 161:166]
-
-# - TFIDF
-stops_Coffee <- c("coffee", "bean", "mug", stopwords("en"))
-
-clean_corpus_Coffee_tfidf <- function(corpus) {
-  corpus <- tm_map(corpus, removePunctuation)
-  corpus <- tm_map(corpus, content_transformer(tolower))
-  corpus <- tm_map(corpus, removeWords, words = stopwords)
-  corpus <- tm_map(corpus, stripWhitespace)
-  return(corpus)
-}
-
-coffee_corpus_clean_tfidf <- clean_corpus_Coffee_tfidf(coffee_corpus)
-coffee_corpus_clean[[227]] %>% content()
-
-
-# - Bag of Words
-coffee_Matrix <- coffee_tdm_matrix %>% rowSums() %>% as.data.frame()
-# -- manual
-coffee_BOW_Manual <- tibble(
-  Word = rownames(coffee_Matrix),
-  Freq = coffee_Matrix[,1]
-) %>% arrange(desc(Freq))
-# -- qdap
-coffee_BOW_QDAP <- freq_terms(text.var = coffee$text,
-                              top = 30,
-                              at.least = 3,
-                              stopwords = stops_Coffee)
-coffee_BOW_QDAP %>% plot()
-# - VISUAL: Frequency Plot
-coffee_BOW_Manual %>% 
-  filter(Freq > 30) %>% 
-  mutate(Word = fct_reorder(Word, Freq)) %>% 
-  ggplot(aes(Freq, Word)) +
-  geom_col() +
-  ggtitle(label = "Coffee: Bag of Words")
-# - VISUAL: WordCloud
-wordcloud(words = coffee_BOW_bigram$word,
-          freq = coffee_BOW_bigram$value,
-          max.words = 15, 
-          colors = c("grey80", "darkgoldenrod1", "tomato"))
-
 
 
 
 # Chardonnay
-# - source
-chardonnay_source <- VectorSource(chardonnay_tweets)
 # - corpus
-chardonnay_corpus <- VCorpus(chardonnay_source)
-chardonnay_corpus[[24]] %>% content()
+chardonnay_Corpus <- chardonnay_tweets %>% 
+  VectorSource() %>% 
+  VCorpus()
+chardonnay_Corpus[[24]] %>% content()
 # - clean corpus
-stop_chardonnay <- c("chardonnay", "amp", "wine", "glass", stopwords("en"))
-
 clean_corpus_Chardonnay <- function(corpus) {
   corpus <- tm_map(corpus, removePunctuation)
   corpus <- tm_map(corpus, content_transformer(tolower))
-  corpus <- tm_map(corpus, removeWords, words = stop_chardonnay)
+  corpus <- tm_map(corpus, removeWords, 
+                   words = c( stopwords("en"), 
+                              "chardonnay", "amp", "wine", "glass"))
   corpus <- tm_map(corpus, stripWhitespace)
   return(corpus)
 }
-
-chardonnay_corpus_Clean <- clean_corpus_Chardonnay(chardonnay_corpus)
+chardonnay_corpus_Clean <- clean_corpus_Chardonnay(chardonnay_Corpus)
 chardonnay_corpus_Clean[[24]] %>% content()
 # - TermDocument Matrix
 chardonnay_tdm <- TermDocumentMatrix(chardonnay_corpus_Clean)
-chardonnay_tdm_Matrix <- as.matrix(chardonnay_tdm)
-# -- 2-gram
-bigram_tokenizer <- function(x) {
-  NGramTokenizer(x, Weka_control(min = 2, max = 2))
-}
+chardonnay_tdm_M <- as.matrix(chardonnay_tdm)
 
-chardonnay_dtm_bigram <- DocumentTermMatrix(
-  chardonnay_corpus_Clean, 
-  control = list(tokenize = bigram_tokenizer)
+# - Visual: Term Frequency
+chardonnay_tf <- tibble(
+  Word = rownames(chardonnay_tdm_M),
+  Freq = rowSums(chardonnay_tdm_M)
+) %>% arrange(-Freq)
+
+chardonnay_tf %>%
+  top_n(10, Freq) %>% 
+  ggplot(aes(Freq, fct_reorder(Word, Freq))) +
+  geom_col()
+
+# - Visual: Word Cloud
+wordcloud(
+  words = chardonnay_tf$Word,
+  freq = chardonnay_tf$Freq,
+  max.words = 50,
+  colors = c("grey80", "darkgoldenrod1", "tomato")
 )
-chardonnay_dtm_bigram_Matrix <- as.matrix(chardonnay_dtm_bigram)
-chardonnay_BOW_bigram <- chardonnay_dtm_bigram_Matrix %>% 
-  colSums() %>% as_data_frame(rownames = "word") %>% 
-  arrange(desc(value))
 
-# - Bag of Words
-chardonnay_Matrix <- rowSums(chardonnay_tdm_Matrix) %>% as.data.frame()
-# -- manual
-chardonnay_BOW_Manual <- tibble(
-  Word = rownames(chardonnay_Matrix),
-  Freq = chardonnay_Matrix[,1]
-) %>% arrange(desc(Freq))
-# - VISUAL: Frequency Plot
-chardonnay_BOW_Manual %>% 
-  filter(Freq > 20) %>% 
-  mutate(Word = fct_reorder(Word, Freq)) %>% 
-  ggplot(aes(Freq, Word)) +
-  geom_col() +
-  ggtitle(label = "Chardonnay: Bag of Words")
-# - VISUAL: WordCloud
-wordcloud(words = chardonnay_BOW_Manual$Word,
-          freq = chardonnay_BOW_Manual$Freq,
-          max.words = 100, 
-          colors = c("grey80", "darkgoldenrod1", "tomato"))
-# -- bigram
-wordcloud(words = chardonnay_BOW_bigram$word,
-          freq = chardonnay_BOW_bigram$value,
-          max.words = 15, 
-          colors = c("grey80", "darkgoldenrod1", "tomato"))
+
+
 
 
 # BOTH
+# - Data
 all_coffee <- paste(coffee$text, collapse = " ")
 all_chardonnay <- paste(chardonnay$text, collapse = " ")
 all_drinks <- c(all_coffee, all_chardonnay)
-# - Tokenization
-drinks_source <- VectorSource(all_drinks)
-drinks_corpus <- VCorpus(drinks_source)
-
-stops_Drinks <- c("coffee", "bean", "mug", "chardonnay", "amp", "wine", "glass", stopwords("en"))
+# - Corpus
+drinks_Corpus <- all_drinks %>% 
+  VectorSource() %>% 
+  VCorpus()
 
 clean_corpus_Drinks <- function(corpus) {
   corpus <- tm_map(corpus, removePunctuation)
   corpus <- tm_map(corpus, stripWhitespace)
   corpus <- tm_map(corpus, removeNumbers)
   corpus <- tm_map(corpus, content_transformer(tolower))
-  corpus <- tm_map(corpus, removeWords, words = stops_Drinks)
+  corpus <- tm_map(corpus, removeWords, words = c(stopwords("en"), 
+                                                  "coffee", "bean", "mug", "chardonnay", "amp", "wine", "glass"))
   return(corpus)
 }
+drinks_Corpus_Clean <- clean_corpus_Drinks(drinks_Corpus)
 
-drinks_corpus_Clean <- clean_corpus_Drinks(drinks_corpus)
 # - TermDocumentMatrix
-drinks_tdm <- TermDocumentMatrix(drinks_corpus_Clean)
+drinks_tdm <- TermDocumentMatrix(drinks_Corpus_Clean)
 colnames(drinks_tdm) <- c("Coffee", "Chardonnay")
-drinks_tdm_Matrix <- as.matrix(drinks_tdm)
+drinks_tdm_M <- as.matrix(drinks_tdm)
 # - VISUAL: Commonality CLoud
-commonality.cloud(term.matrix = drinks_tdm_Matrix,
+commonality.cloud(term.matrix = drinks_tdm_M,
                   max.words = 100,
                   colors = "steelblue1")
 # - VISUAL: Comparision CLoud
-comparison.cloud(term.matrix = drinks_tdm_Matrix,
+comparison.cloud(term.matrix = drinks_tdm_M,
                  max.words = 100,
                  colors = c("orange", "blue"))
 # - VISUAL: Pyramid Plot
-drinks_BOW_top25 <- drinks_tdm_Matrix %>% 
+drinks_tf_top25 <- drinks_tdm_M %>% 
   as_data_frame(rownames = "word") %>% 
-  filter(. > 0) %>% 
   mutate(difference = Chardonnay - Coffee) %>% 
   top_n(n = 25, wt = difference) %>% 
-  arrange(desc(difference))
+  arrange(-difference)
 
-pyramid.plot(
-  drinks_BOW_top25$Chardonnay, 
-  drinks_BOW_top25$Coffee, 
-  labels = drinks_BOW_top25$word, 
+plotrix::pyramid.plot(
+  drinks_tf_top25$Chardonnay, 
+  drinks_tf_top25$Coffee, 
+  labels = drinks_tf_top25$word, 
   top.labels = c("Chardonnay", "Words", "Coffee"), 
   main = "Words in Common", 
   unit = NULL,
   gap = 8,
 )
 
-# (QDAP) Tech Giants: Data ----
+# Drinks: tidytext ----
+# Tech Giants: Data ----
 amazon <- read_csv("https://assets.datacamp.com/production/repositories/19/datasets/92c0a61dc0ad77799c8cd46bd6e56d9429eb5ea4/500_amzn.csv")
 amazon_pros <- amazon$pros
 amazon_cons <- amazon$cons
@@ -412,7 +666,7 @@ google <- read_csv("https://assets.datacamp.com/production/repositories/19/datas
 google_pros <- google$pros
 google_cons <- google$cons
 
-# (QDAP) Tech Giants: Tokenization ----
+# Tech Giants: QDAP ----
 # - clean text Function
 qdap_clean <- function(x){
   x <- replace_abbreviation(x)
@@ -432,38 +686,38 @@ tm_clean <- function(corpus){
                    c(stopwords("en"), "Google", "Amazon", "company"))
   return(corpus)
 }
-# - tokenizer
-tokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
-
 
 # AMAZON
 # - clean text
-amazon_pros_clean <- qdap_clean(amazon_pros)
-amazon_cons_clean <- qdap_clean(amazon_cons)
-# - make corpus
-amazon_pros_Source <- VectorSource(amazon_pros_clean)
-amazon_cons_Source <- VectorSource(amazon_cons_clean)
-amazon_pros_Corpus <- VCorpus(amazon_pros_Source)
-amazon_cons_Corpus <- VCorpus(amazon_cons_Source)
-# - clean corpus
-amazon_pros_Corpus_Clean <- tech_tm_amazon_clean(amazon_pros_Corpus)
-amazon_cons_Corpus_Clean <- tech_tm_amazon_clean(amazon_cons_Corpus)
+amazon_pros_Clean <- qdap_clean(amazon_pros)
+amazon_cons_Clean <- qdap_clean(amazon_cons)
+# - Corpus
+amazon_pros_Corpus <- amazon_pros_Clean %>% 
+  VectorSource() %>% 
+  VCorpus()
+amazon_cons_Corpus <- amazon_cons_Clean %>% 
+  VectorSource() %>% 
+  VCorpus()
+amazon_pros_Corpus_Clean <- tm_clean(amazon_pros_Corpus)
+amazon_cons_Corpus_Clean <- tm_clean(amazon_cons_Corpus)
 # - token
 amazon_pros_tdm <- TermDocumentMatrix(amazon_pros_Corpus_Clean,
                                       control = list(tokenize = tokenizer))
 
 # GOOGLE
 # - clean text
-google_pros_clean <- qdap_clean(google_pros)
-google_cons_clean <- qdap_clean(google_cons)
+google_pros_Clean <- qdap_clean(google_pros)
+google_cons_Clean <- qdap_clean(google_cons)
 # - make corpus
-google_pros_Source <- VectorSource(google_pros_clean)
-google_cons_Source <- VectorSource(google_cons_clean)
-google_pros_Corpus <- VCorpus(google_pros_Source)
-google_cons_Corpus <- VCorpus(google_cons_Source)
+google_pros_Corpus <- google_pros_Clean %>% 
+  VectorSource() %>% 
+  VCorpus()
+google_cons_Corpus <- google_cons_Clean %>% 
+  VectorSource() %>% 
+  VCorpus()
 # - clean corpus
-google_pros_Corpus_Clean <- tech_tm_amazon_clean(google_pros_Corpus)
-google_cons_Corpus_Clean <- tech_tm_amazon_clean(google_cons_Corpus)
+google_pros_Corpus_Clean <- tm_clean(google_pros_Corpus)
+google_cons_Corpus_Clean <- tm_clean(google_cons_Corpus)
 
 
 # (Topic Modeling) Sherlock Holmes ----
@@ -1105,15 +1359,30 @@ airbnb_bing %>%
   labs(x = NULL, y = NULL) + 
   ggtitle("Bing: Count")
 # - calculate polarity for each review
-airbnb_bing_polarity <- airbnb_freq %>%
+airbnb_bing_polarity_byID <- airbnb_freq %>%
   inner_join(get_sentiments("bing")) %>% 
   count(sentiment) %>% 
   spread(sentiment, n, fill = 0) %>% 
   mutate(polarity = positive - negative)
-airbnb_bing_polarity %>% 
+airbnb_bing_polarity_byID %>% 
   ggplot(aes(id, polarity)) +
   geom_smooth(se = FALSE) +
   ggtitle("Polarity by id (review time ?)")
+
+airbnb_bing_polarity_byWord <- airbnb_freq %>%
+  inner_join(get_sentiments("bing")) %>% 
+  count(word, sentiment, wt = n) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(polarity = positive - negative)
+
+airbnb_bing_polarity_byWord %>% 
+  filter(abs(polarity) >= 3) %>% 
+  mutate(pos_neg = ifelse(polarity > 0, "positive", "negative")) %>% 
+  ggplot(aes(forcats::fct_reorder(word, polarity), polarity, fill = pos_neg)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  ggtitle("Sentiment Word Frequency")
+
 # - assesing Author Effort (number of words used vs polarity)
 airbnb_tidy %>% 
   count(id) %>% 
@@ -1143,6 +1412,11 @@ airbnb_afinn %>%
   geom_smooth(se = FALSE) +
   ggtitle("Afinn: Total Value by id")
 
+airbnb_freq %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  ggplot(aes(value)) +
+  geom_density()
+
 # Sentiment Analysis: nrc
 # - NRC
 get_sentiments("nrc") %>% count(sentiment)
@@ -1156,38 +1430,18 @@ airbnb_nrc %>%
   labs(x = NULL, y = NULL) + 
   ggtitle("NRC: Count")
 
+airbnb_freq %>% 
+  inner_join(get_sentiments("nrc")) %>% 
+  filter(!grepl("positive|negative", sentiment)) %>% 
+  count(sentiment, word) %>% 
+  spread(sentiment, n, fill = 0)
+comparison.cloud()
 
-airbnb_reviews_TFIDF_M <- as.matrix(airbnb_reviews_TFIDF)
-colnames(airbnb_reviews_TFIDF_M) <- c("positive","negative")
-airbnb_reviews_TFIDF_M_ordered_pos <- order(airbnb_reviews_TFIDF_M[,1], decreasing = TRUE)
-airbnb_reviews_TFIDF_M[airbnb_reviews_TFIDF_M_ordered_pos, ] %>% head(10)
-airbnb_reviews_TFIDF_M_ordered_neg <- order(airbnb_reviews_TFIDF_M[,2], decreasing = TRUE)
-airbnb_reviews_TFIDF_M[airbnb_reviews_TFIDF_M_ordered_neg, ] %>% head(10)
-comparison.cloud(term.matrix = airbnb_reviews_TFIDF_M,
-                 max.words = 20,
-                 colors = c("darkgreen", "darkred"))
-
-# - grade inflation
-airbnb_reviews$scaled_polarity <- scale(airbnb_polarity$all$polarity)
-airbnb_positive_comments <- subset(airbnb_reviews$comments, airbnb_reviews$scaled_polarity > 0)
-airbnb_negative_comments <- subset(airbnb_reviews$comments, airbnb_reviews$scaled_polarity < 0)
-airbnb_postive_terms <- paste(airbnb_positive_comments, collapse = " ")
-airbnb_negative_terms <- paste(airbnb_negative_comments, collapse = " ")
-airbnb_terms <- c(airbnb_postive_terms, airbnb_negative_terms)
-airbnb_Corpus <- VCorpus(VectorSource(airbnb_terms))
-airbnb_TDM <- TermDocumentMatrix(
-  airbnb_Corpus,
-  control = list(
-    weighting = weightTfIdf,
-    removePunctuation = TRUE, 
-    stopwords = stopwords(kind = "en")
-  )
-)
-
-airbnb_TDM_M <- as.matrix(airbnb_TDM)
-colnames(airbnb_TDM_M) <- c("positive", "negative")
-comparison.cloud(airbnb_TDM_M,
-                 max.words = 100,
-                 colors = c("darkgreen", "darkred"))
+airbnb_freq %>% 
+  inner_join(get_sentiments("nrc")) %>% 
+  filter(!grepl("positive|negative", sentiment)) %>% 
+  ungroup() %>% 
+  count(sentiment) 
+  
 
 # EXAMPLE: Music lyrics polairty ----
