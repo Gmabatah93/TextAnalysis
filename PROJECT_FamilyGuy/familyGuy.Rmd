@@ -13,6 +13,7 @@ output:
 # Summary
 
 ## Libraries
+
 ```{r library, message=FALSE, echo=TRUE}
 library(tidyverse)
 library(forcats)
@@ -22,9 +23,11 @@ library(RColorBrewer)
 library(grid)
 library(magick)
 library(cowplot)
+library(ggpubr)
 ```
 
 ## Data
+
 ```{r data, message=FALSE, echo=TRUE}
 # Load Data
 family_raw <- read_csv("Data/Family_guy_dialog.csv")
@@ -53,13 +56,14 @@ family_guy_Palette <- c(brian,chris,cleveland,lois,meg,peter,quagmire,stewie)
 
 
 # Exploratory Data Analysis
+
 ```{r counts, message=FALSE, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
 # EDA
 gg_family_Linecount <- family %>% 
   count(season, character) %>% 
   ggplot(aes(fct_reorder(character, n), n, fill = character)) + 
   geom_col(show.legend = FALSE) +
-  geom_label(aes(label = n), size = 3, fill = "grey80") +
+  geom_label(aes(label = n), size = 3, color = "white") +
   facet_wrap(~season, scales = "free_x", nrow = 3) +
   coord_flip() +
   labs(title = "Family Guy: Line Count") +
@@ -67,59 +71,26 @@ gg_family_Linecount <- family %>%
   theme(
     plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
     axis.title = element_blank(),
-    axis.text.y = element_text(face = "bold")
+    axis.text.y = element_text(face = "bold"),
+    legend.position = "none"
   ) +
   scale_fill_manual(values = family_guy_Palette)
 
 gg_family_Linecount
 ```
 
-```{r}
-# Family Guy: tidytext ----
+## Text Preprocessing
 
+```{r textPrep, message=FALSE, echo=TRUE}
 # Bag of Words
 family_tidy <- family %>% 
   unnest_tokens(word, dialog) %>% 
   anti_join(stop_words)
 
-# - BOW: Popular Words (Character)
-family_tidy %>% 
-  group_by(character) %>%
-  count(word) %>% 
-  arrange(-n) %>% 
-  top_n(3, n) %>% 
-  ggplot(aes(n, fct_reorder(word,n), fill = character)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~character, scales = "free")
-# - BOW: Popular Words (Character per Season)
-gg_tf_Character_Season <- function(season_num) {
-  
-  family_tidy %>% 
-    filter(season == season_num) %>% 
-    group_by(character) %>%
-    count(word) %>% 
-    arrange(-n) %>% 
-    top_n(3, n) %>% 
-    ggplot(aes(n, fct_reorder(word,n), fill = character)) +
-    geom_col(show.legend = FALSE) +
-    facet_wrap(~character, scales = "free") +
-    theme_bw() +
-    labs(title = paste0("Season: ", season_num))
-  
-}
-
-gg_tf_Character_Season(12)
-
-
 # Term Frequency
 family_tf <- family_tidy %>% 
   count(word) %>% 
   arrange(-n)
-
-# TfIdf
-family_tf_idf <- family_tidy %>% 
-  count(season, word) %>% 
-  bind_tf_idf(term = word,document = season,n = n)
 
 # Bigram
 family_bigram <- family %>% 
@@ -137,41 +108,131 @@ family_bigram_clean_unite <-
   filter(bigram != "NA NA")
 
 family_bigram_clean_unite %>% count(bigram) %>% arrange(-n)
-# - Bigram: Popular Words (Character)
+```
+
+### Term Frequency: Analysis
+
+```{r season, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
+
+# Top Words (Character)
+family_tidy %>% 
+  group_by(character) %>%
+  count(word) %>% 
+  arrange(-n) %>% 
+  top_n(3, n) %>% 
+  ggplot(aes(n, fct_reorder(word,n), fill = character)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~character, scales = "free") +
+  labs(title = "Top Words",
+       x = NULL, y = NULL) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold")
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+
+# Top Words (Season 1-6)
+family_tidy %>% 
+  filter(season %in% 1:6) %>% 
+  group_by(character) %>%
+  count(word) %>% 
+  arrange(-n) %>% 
+  top_n(5, n) %>% 
+  ggplot(aes(n, fct_reorder(word,n), fill = character)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~character, scales = "free") +
+  labs(
+    title = "Top Words",
+    subtitle = "Season: 1-6",
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.3, size = 15),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold")
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+
+
+# Top Words (Season 6-12)
+family_tidy %>% 
+  filter(season %in% 6:12) %>% 
+  group_by(character) %>%
+  count(word) %>% 
+  arrange(-n) %>% 
+  top_n(5, n) %>% 
+  ggplot(aes(n, fct_reorder(word,n), fill = character)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~character, scales = "free") +
+  labs(
+    title = "Top Words",
+    subtitle = "Season: 6-12",
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.3, size = 15),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold")
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+
+# Top Bigram: Popular Words (Character)
+family_bigram_clean_unite %>% 
+  group_by(character) %>%
+  count(bigram) %>% 
+  arrange(-n) %>% 
+  top_n(5, n) %>% 
+  ggplot(aes(n, fct_reorder(bigram,n), fill = character)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~character, scales = "free") +
+  labs(title = "Top Bigram") +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold")
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+
+# Top Bigram: (Season 1-6)
 family_bigram_clean_unite %>% 
   group_by(character) %>%
   count(bigram) %>% 
   arrange(-n) %>% 
   top_n(3, n) %>% 
+  ungroup() %>% 
   ggplot(aes(n, fct_reorder(bigram,n), fill = character)) +
   geom_col(show.legend = FALSE) +
-  facet_wrap(~character, scales = "free")
-# - Bigram: Popular Words (Character per Season)
-gg_bigram_Character_Season <- function(season_num) {
-  
-  family_bigram_clean_unite %>% 
-    filter(season == season_num) %>% 
-    group_by(character) %>%
-    count(bigram) %>% 
-    arrange(-n) %>% 
-    top_n(3, n) %>% 
-    ggplot(aes(n, fct_reorder(bigram,n), fill = character)) +
-    geom_col(show.legend = FALSE) +
-    facet_wrap(~character, scales = "free") +
-    theme_bw() +
-    labs(title = paste0("Season: ", season_num))
-  
-}
+  facet_wrap(~character, scales = "free") +
+  labs(
+    title = "Top Bigrams",
+    subtitle = "Season: ALL",
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.3, size = 15),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold")
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+```
 
-gg_bigram_Character_Season(3)
+# Sentiment Analysis [TABS] {.tabset .tabset-fade}
 
-#
-# Family Guy: Sentiment Analysis ----
+## BING
 
-# BING
+```{r bing, message=FALSE, warning=FALSE, echo=TRUE}
 family_bing <- family_tidy %>% inner_join(get_sentiments("bing"))
 family_bing %>% count(sentiment)
+```
 
+### Polarity
+
+```{r bing_polarity, message=FALSE, echo=TRUE, fig.align='center', fig.height=3, fig.width=10}
+# By Index
 family_bing %>% 
   count(index, season, sentiment) %>% 
   spread(sentiment, n, fill = 0) %>% 
@@ -179,32 +240,17 @@ family_bing %>%
   ggplot(aes(index, polarity)) +
   geom_smooth(show.legend = FALSE) +
   geom_hline(yintercept = 0, color = "red") +
-  labs(title = "Polarity of Entire Series")
+  labs(
+    title = "Polarity",
+    y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.title.x = element_text(face = "bold", size = 10)
+  )
 
-family_bing %>% 
-  count(word, sentiment) %>% 
-  spread(sentiment, n, fill = 0) %>% 
-  mutate(polarity = positive - negative) %>% 
-  mutate(pos_neg = ifelse(polarity > 0, "positive","negative")) %>% 
-  filter(abs(polarity) >= 5) %>% 
-  ggplot(aes(fct_reorder(word, polarity), polarity, fill = pos_neg)) +
-  geom_col(show.legend = FALSE) +
-  coord_flip() +
-  labs(title = "Polarity of Words",
-       x = NULL)
-
-family_bing %>% 
-  count(word, sentiment) %>% 
-  group_by(sentiment) %>% 
-  top_n(10, n) %>% 
-  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~ sentiment, scales = "free") +
-  labs(title = "Polarity: Top 10 Words",
-       x = NULL, y = NULL) + theme_bw()
-
-
-# - Seasons
+# By season
 family_bing %>% 
   count(index, season, sentiment) %>% 
   spread(sentiment, n, fill = 0) %>% 
@@ -213,128 +259,400 @@ family_bing %>%
   geom_smooth(show.legend = FALSE) +
   geom_hline(yintercept = 0, color = "red") +
   facet_wrap(~season, scales = "free_x", nrow = 2) +
-  labs(title = "Polarity of Entire Series",
-       subtitle = "by Season") +
-  theme_bw()
+  labs(
+    title = "Polarity",
+    subtitle = "By Season",
+    y = NULL
+  ) + 
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.title.x = element_text(face = "bold", size = 10)
+  )
 
-family_bing %>% 
-  ggplot(aes(sentiment, fill = sentiment)) +
-  geom_bar(show.legend = FALSE) +
-  facet_wrap(~season, nrow = 2) +
-  theme_bw() +
-  labs(title = "Polarity by Seasons",
-       x = NULL, y = NULL)
-family_bing %>% 
-  count(season, sentiment) %>% 
-  spread(sentiment, n) %>% 
-  mutate(overall = positive - negative)
-# - Seasons: Top Words
-gg_topWords_Season <- function(season_num) {
-  
-  family_bing %>% 
-    filter(season == season_num) %>% 
-    group_by(season, sentiment) %>%
-    count(word, sort = TRUE) %>%
-    top_n(3, n) %>% 
-    ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
-    geom_col(show.legend = FALSE) +
-    facet_wrap(~sentiment, scales = "free") +
-    theme_bw() +
-    labs(
-      title = "Top Words",
-      subtitle = paste0("Season: ", season_num),
-      x = NULL, y = NULL
-    )
-  
-}
-gg_topWords_Season(6)
+```
 
-# - Characters
-gg_polarity_Season_Character <- function(name) {
-  
-  family_bing %>%
-    filter(character == name) %>% 
+```{r bing_polarity_Character, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=5, fig.width=8}
+# By Character
+# - Peter
+gg_Polarity_Peter <- family_bing %>%
+  filter(character == "Peter") %>% 
+  count(index, season, sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(polarity = positive - negative) %>% 
+  ggplot(aes(index, polarity)) +
+  geom_smooth(show.legend = FALSE, size = 1, color = peter) +
+  geom_hline(yintercept = 0, color = "red", linetype = 2, alpha = 0.3) +
+  facet_wrap(~season, scales = "free_x", nrow = 1) +
+  labs(title = "Polarity throughout the Series",
+       subtitle = "Peter",
+       x = "Season", y = NULL) +
+  theme_minimal() +
+    theme(
+      plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 12),
+      plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 6),
+      axis.title.x = element_text(face = "bold", size = 10),
+      axis.text.x = element_blank() 
+)
+# - Lois
+gg_Polarity_Lois <- family_bing %>%
+    filter(character == "Lois") %>% 
     count(index, season, sentiment) %>% 
     spread(sentiment, n, fill = 0) %>% 
     mutate(polarity = positive - negative) %>% 
     ggplot(aes(index, polarity)) +
-    geom_smooth(show.legend = FALSE) +
-    geom_hline(yintercept = 0, color = "red") +
-    facet_wrap(~season, scales = "free_x", nrow = 2) +
-    labs(title = "Polarity of Entire Series by Season",
-         subtitle = paste0("Name: ", name)) +
-    theme_bw()
-}
-gg_polarity_Season_Character(name = "Chris")
+    geom_smooth(show.legend = FALSE, size = 1, color = lois) +
+    geom_hline(yintercept = 0, color = "red", linetype = 2, alpha = 0.3) +
+    facet_wrap(~season, scales = "free_x", nrow = 1) +
+    labs(title = "Polarity throughout the Series",
+         subtitle = "Lois",
+         x = NULL, y = NULL) +
+    theme_minimal() +
+      theme(
+        plot.title = element_blank(),
+        plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 10),
+        axis.title.x = element_text(face = "bold", size = 6),
+        axis.text.x = element_blank() 
+      )
+# - Stewie
+gg_Polarity_Stewie <- family_bing %>%
+    filter(character == "Stewie") %>% 
+    count(index, season, sentiment) %>% 
+    spread(sentiment, n, fill = 0) %>% 
+    mutate(polarity = positive - negative) %>% 
+    ggplot(aes(index, polarity)) +
+    geom_smooth(show.legend = FALSE, size = 1, color = stewie) +
+    geom_hline(yintercept = 0, color = "red", linetype = 2, alpha = 0.3) +
+    facet_wrap(~season, scales = "free_x", nrow = 1) +
+    labs(title = "Polarity throughout the Series",
+         subtitle = "Stewie",
+         x = NULL, y = NULL) +
+    theme_minimal() +
+      theme(
+        plot.title = element_blank(),
+        plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 10),
+        axis.title.x = element_text(face = "bold", size = 10),
+        axis.text.x = element_blank() 
+      )
+# - Brian
+gg_Polarity_Brian <- family_bing %>%
+    filter(character == "Brian") %>% 
+    count(index, season, sentiment) %>% 
+    spread(sentiment, n, fill = 0) %>% 
+    mutate(polarity = positive - negative) %>% 
+    ggplot(aes(index, polarity)) +
+    geom_smooth(show.legend = FALSE, size = 1, color = brian) +
+    geom_hline(yintercept = 0, color = "red", linetype = 2, alpha = 0.3) +
+    facet_wrap(~season, scales = "free_x", nrow = 1) +
+    labs(title = "Polarity throughout the Series",
+         subtitle = "Brian",
+         x = NULL, y = NULL) +
+    theme_minimal() +
+      theme(
+        plot.title = element_blank(),
+        plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 10),
+        axis.title.x = element_text(face = "bold", size = 10),
+        axis.text.x = element_blank() 
+      )
+# - Chris
+gg_Polarity_Chris <- family_bing %>%
+    filter(character == "Chris") %>% 
+    count(index, season, sentiment) %>% 
+    spread(sentiment, n, fill = 0) %>% 
+    mutate(polarity = positive - negative) %>% 
+    ggplot(aes(index, polarity)) +
+    geom_smooth(show.legend = FALSE, size = 1, color = chris) +
+    geom_hline(yintercept = 0, color = "red", linetype = 2, alpha = 0.3) +
+    facet_wrap(~season, scales = "free_x", nrow = 1) +
+    labs(title = "Polarity throughout the Series",
+         subtitle = "Chris",
+         x = NULL, y = NULL) +
+    theme_minimal() +
+      theme(
+        plot.title = element_blank(),
+        plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 10),
+        axis.title.x = element_text(face = "bold", size = 10),
+        axis.text.x = element_blank() 
+      )
+# - Meg
+gg_Polarity_Meg <- family_bing %>%
+    filter(character == "Meg") %>% 
+    count(index, season, sentiment) %>% 
+    spread(sentiment, n, fill = 0) %>% 
+    mutate(polarity = positive - negative) %>% 
+    ggplot(aes(index, polarity)) +
+    geom_smooth(show.legend = FALSE, size = 1, color = meg) +
+    geom_hline(yintercept = 0, color = "red", linetype = 2, alpha = 0.3) +
+    facet_wrap(~season, scales = "free_x", nrow = 1) +
+    labs(title = "Polarity throughout the Series",
+         subtitle = "Meg",
+         x = NULL, y = NULL) +
+    theme_minimal() +
+      theme(
+        plot.title = element_blank(),
+        plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 10),
+        axis.title.x = element_text(face = "bold", size = 10),
+        axis.text.x = element_blank() 
+      )
 
+# Visual
+ggarrange(gg_Polarity_Peter,gg_Polarity_Lois, gg_Polarity_Stewie,
+          ncol = 1)
+ggarrange(gg_Polarity_Brian, gg_Polarity_Chris, gg_Polarity_Meg, 
+          ncol = 1)
+```
+
+```{r bing_words_All, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
 family_bing %>% 
-  count(character, sentiment) %>% 
+  count(word, sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(polarity = positive - negative) %>% 
+  mutate(pos_neg = ifelse(polarity > 0, "positive","negative")) %>% 
+  filter(abs(polarity) >= 8) %>% 
+  ggplot(aes(fct_reorder(word, polarity), polarity, fill = pos_neg)) +
+  geom_col(show.legend = FALSE) +
+  geom_label(aes(label = polarity), color = "white") +
+  coord_flip() +
+  labs(title = "Polarity of Words",
+       subtitle = "Series: ALL",
+       x = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.title.x = element_text(face = "bold", size = 10),
+    legend.position = "none"
+  ) +
+  scale_fill_manual(values = c("tomato", "forestgreen"))
+```
+
+```{r bing_polarity_Season, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=1, fig.width=12}
+family_bing %>% 
+  group_by(season) %>% 
+  count(sentiment) %>% 
+  ggplot(aes(sentiment,n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  geom_label(aes(label = n), color = "white") +
+  facet_wrap(~season, nrow = 1) +
+  theme_bw() +
+  labs(
+    title = "Polarity by Season",
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.title.x = element_text(face = "bold", size = 10),
+    axis.text.x = element_blank(),
+    legend.position = "none"
+  ) +
+  scale_fill_manual(values = c("tomato","forestgreen"))
+
+# Dataframe
+family_bing %>% 
+  count(season, sentiment) %>% 
   spread(sentiment, n) %>% 
   mutate(overall = positive - negative)
+```
+
+### Polarity: Words (Season)
+
+```{r bing_polarity_words_Season, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=6, fig.width=8}
+# Season: 1-6
 family_bing %>% 
-  ggplot(aes(sentiment, fill = sentiment)) +
-  geom_bar(show.legend = FALSE) +
-  facet_wrap(~character) +
+  filter(season %in% 1:6) %>% 
+  group_by(sentiment) %>% 
+  count(word, sort = TRUE) %>%
+  top_n(10, n) %>%
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free") +
   theme_bw() +
-  labs(title = "Polarity by Character",
-       x = NULL, y = NULL)
+  labs(
+    title = "Polarity: Top Words",
+    subtitle = "Season: 1-6",
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.title.x = element_text(face = "bold", size = 10)
+  )
+
+# Season: 7-12
+family_bing %>% 
+  filter(season %in% 7:12) %>% 
+  group_by(sentiment) %>% 
+  count(word, sort = TRUE) %>%
+  top_n(10, n) %>%
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free") +
+  theme_bw() +
+  labs(
+    title = "Polarity: Top Words",
+    subtitle = "Season: 7-12",
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.title.x = element_text(face = "bold", size = 10)
+  )
+```
+
+### Polarity: Words (Character)
+
+```{r bing_polarity_words_Character, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=3, fig.width=12}
+# Total by Character
+family_bing %>% 
+  group_by(character) %>% 
+  count(sentiment) %>% 
+  ggplot(aes(sentiment, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  geom_label(aes(label = n), color = "white") +
+  facet_wrap(~character, nrow = 1) +
+  labs(
+    title = "Polarity by Character",
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.title.x = element_text(face = "bold", size = 10),
+    axis.text = element_blank(),
+    legend.position = "none"
+  ) +
+  scale_fill_manual(values = c("tomato","forestgreen"))
+```
+
+```{r bing_polarity_per_Season, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=4, fig.width=12}
+# % Polarity by Season
 family_bing %>% 
   count(season, character, sentiment) %>% 
   ggplot(aes(character, n, fill = sentiment)) +
-  geom_col(position = "fill", show.legend = FALSE) +
-  facet_wrap(~ season, nrow = 2) +
+  geom_col(position = "fill", alpha = 0.5, show.legend = FALSE) +
+  facet_wrap(~ season, scales = "free_x", nrow = 1) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 90)) +
   labs(title = "% Polarity of Characters by Season",
-       x = NULL, y = NULL)
-
-# - Character: Top Words
-family_bing %>%
-  filter(sentiment == "negative") %>% 
-  count(character, word) %>% 
-  group_by(character) %>% 
-  top_n(3, n) %>% 
-  ungroup() %>% 
-  ggplot(aes(n, fct_reorder(word, n), fill = character)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~ character, scales = "free", nrow = 2) +
-  theme_bw() +
-  labs(title = "Top Words by Character",
-       subtitle = "negative",
-       x = NULL, y = NULL)
-family_bing %>%
-  filter(sentiment == "positive") %>% 
-  count(character, word) %>% 
-  group_by(character) %>% 
-  top_n(3, n) %>% 
-  ungroup() %>% 
-  ggplot(aes(n, fct_reorder(word, n), fill = character)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~ character, scales = "free", nrow = 2) +
-  theme_bw() +
-  labs(title = "Top Words by Character",
-       subtitle = "positive",
-       x = NULL, y = NULL)
-
-gg_topWords_Season_Character <- function(season_num) {
-  
-  family_bing %>% 
-    filter(season == season_num) %>% 
-    count(character, word, sentiment) %>% 
-    group_by(character) %>% 
-    top_n(5, n) %>% 
-    ungroup() %>% 
-    ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
-    geom_col(show.legend = FALSE) +
-    facet_wrap(~ character, scales = "free", nrow = 2) +
-    theme_bw() +
-    labs(title = paste0("Season ", season_num, ": Top Words by Character"),
-         x = NULL, y = NULL)
-  
-}
-gg_topWords_Season_Character(12)
+       x = NULL, y = NULL) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.text.y = element_blank(),
+    axis.text.x = element_text(face = "italic", size = 7, vjust = 1),
+    legend.position = "none"
+  ) +
+  scale_fill_manual(values = c("tomato","forestgreen"))
 ```
 
-## Modeling 
-### Model Fit
-### Model Results
+```{r bing_character_top_words, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
+# Character Top Words: Positive
+family_bing %>%
+  filter(sentiment == "positive") %>% 
+  group_by(character) %>% 
+  count(word) %>% 
+  top_n(3, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = character)) +
+  geom_col(show.legend = FALSE, alpha = 0.5) +
+  geom_label(aes(label = n), color = "white") +
+  facet_wrap(~ character, scales = "free", nrow = 2) +
+  labs(
+    title = "Top Words",
+    subtitle = "Positive",
+    x = NULL, y = NULL
+  ) +
+  theme(
+      plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+      plot.subtitle = element_text(color = "forestgreen", hjust = 0.5, size = 15),
+      axis.text.x = element_blank(),
+      strip.text = element_text(face = "bold", size = 15, color = "grey35"),
+      legend.position = "none"
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+
+# Character Top Words: Negative
+family_bing %>%
+  filter(sentiment == "negative") %>% 
+  group_by(character) %>% 
+  count(word) %>% 
+  top_n(3, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = character)) +
+  geom_col(show.legend = FALSE, alpha = 0.5) +
+  geom_label(aes(label = n), color = "white") +
+  facet_wrap(~ character, scales = "free", nrow = 2) +
+  labs(
+    title = "Top Words",
+    subtitle = "Negative",
+    x = NULL, y = NULL
+  ) +
+  theme(
+      plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+      plot.subtitle = element_text(color = "tomato", hjust = 0.5, size = 15),
+      axis.text.x = element_blank(),
+      strip.text = element_text(face = "bold", size = 15, color = "grey35"),
+      legend.position = "none"
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+```
+
+```{r bing_character_top_words_Season, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
+# Season 1-6
+family_bing %>% 
+  filter(season %in% 1:6) %>% 
+  group_by(character) %>% 
+  count(sentiment, word) %>% 
+  top_n(5, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE, alpha = 0.3) +
+  geom_label(aes(label = n), color = "white") +
+  facet_wrap(~ character, scales = "free", nrow = 2) +
+  labs(
+    title = "Top Words by Character",
+    subtitle = "Season: 1-6",
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.text.x = element_blank(),
+    strip.text = element_text(face = "bold", size = 15, color = "grey35"),
+    legend.position = "none"
+  ) +
+  scale_fill_manual(values = c("tomato","forestgreen"))
+
+# Season 6-12
+family_bing %>% 
+  filter(season %in% 7:12) %>% 
+  group_by(character) %>% 
+  count(sentiment, word) %>% 
+  top_n(5, n) %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
+  geom_col(show.legend = FALSE, alpha = 0.3) +
+  geom_label(aes(label = n), color = "white") +
+  facet_wrap(~ character, scales = "free", nrow = 2) +
+  labs(
+    title = "Top Words by Character",
+    subtitle = "Season: 7-12",
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.text.x = element_blank(),
+    strip.text = element_text(face = "bold", size = 15, color = "grey35"),
+    legend.position = "none"
+  ) +
+  scale_fill_manual(values = c("tomato","forestgreen"))
+```
+
+### nrc
+
+### afinn
+
+END - Sentiment Analysis TABS - END
