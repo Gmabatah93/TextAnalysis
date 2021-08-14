@@ -284,3 +284,61 @@ rm_afinn %>%
   filter(name %in% rm_characters) %>% 
   ggplot(aes(value, fill = name)) +
   geom_density(alpha = 0.09)
+
+# Family Guy: Data ----
+family_raw <- read_csv("Data/Family_guy_dialog.csv")
+family <- family_raw %>% 
+  mutate(index = row_number()) %>% 
+  select(index, season = seasons, character, dialog) %>% 
+  mutate(season = str_replace(season, "season", "") %>% as.integer %>% as.factor) %>% 
+  filter(character != "Maids and Butlers M&B")
+
+# Counts
+family %>% count(character)
+family %>% count(seasons)
+
+# EDA
+family %>% 
+  ggplot(aes(character, fill = season)) + 
+  geom_bar(show.legend = FALSE) +
+  facet_wrap(~season, scales = "free_x", nrow = 3) +
+  coord_flip() +
+  theme_bw() +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+
+#
+# Family Guy: tidytext ----
+
+# Bag of Words
+family_tidy <- family %>% 
+  unnest_tokens(word, dialog) %>% 
+  anti_join(stop_words)
+
+# Term Frequency
+family_tf <- family_tidy %>% 
+  count(word) %>% 
+  arrange(-n)
+
+# TfIdf
+family_tf_idf <- family_tidy %>% 
+  count(season, word) %>% 
+  bind_tf_idf(term = word,document = season,n = n)
+
+# Bigram
+family_bigram <- family %>% 
+  unnest_tokens(bigram, dialog,
+                token = "ngrams",
+                n = 2)
+family_bigram_clean_seperate <- family_bigram %>% 
+  separate(bigram, c("word1","word2"), sep = " ") %>% 
+  filter(!word1 %in% stop_words$word) %>% 
+  filter(!word2 %in% stop_words$word)
+
+family_bigram_clean_unite <- 
+  family_bigram_clean_seperate %>% 
+  unite(bigram, word1, word2, sep = " ")
+
+family_bigram_clean_unite %>% count(bigram) %>% arrange(-n)
+
+# Family Guy: Sentiment Analysis ----
