@@ -2,31 +2,51 @@ library(tidyverse)
 library(forcats)
 theme_set(theme_minimal())
 library(tidytext)
-library(tm)
-library(qdap)
+library(RColorBrewer)
+library(grid)
+library(magick)
 
-# Family Guy: Data ----
-family_raw <- read_csv("Data/Family_guy_dialog.csv")
+# Data ----
+family_raw <- read_csv("PROJECT_FamilyGuy/Data/Family_guy_dialog.csv")
 family <- family_raw %>% 
   mutate(index = row_number()) %>% 
   select(index, season = seasons, character, dialog) %>% 
   mutate(season = str_replace(season, "season", "") %>% as.integer %>% as.factor) %>% 
   filter(character != "Maids and Butlers M&B")
+# - color Chart
+peter <- "#2A6431"
+lois <- "#F8784E"
+stewie <- "#EB0C42"
+brian <- "#E1E0DE"
+chris <- "#0576C2"
+meg <- "#E06EAA"
+quagmire <- "#FAEE40"
+cleveland <- "#783204"
 
 # Counts
-family %>% count(character) %>% arrange(-n)
 family %>% count(season)
+family %>% count(character) %>% arrange(-n)
 
 # EDA
+family_guy_Palette <- c(brian,chris,cleveland,lois,meg,peter,quagmire,stewie)
 family %>% 
   count(season, character) %>% 
-  ggplot(aes(fct_reorder(character, n), n, fill = season)) + 
+  ggplot(aes(fct_reorder(character, n), n, fill = character)) + 
   geom_col(show.legend = FALSE) +
+  geom_label(aes(label = n), size = 3, fill = "grey80") +
   facet_wrap(~season, scales = "free_x", nrow = 3) +
   coord_flip() +
+  labs(title = "Family Guy: Line Count") +
   theme_bw() +
-  theme(axis.title = element_blank())
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold")
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
 
+image_family <- image_read(path = "PROJECT_FamilyGuy/Images/famliyguy.PNG")
+grid.raster(image_family, x = 0.88, y = 0.18, height = 0.25)
 #
 # Family Guy: tidytext ----
 

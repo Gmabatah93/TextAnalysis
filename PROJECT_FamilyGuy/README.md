@@ -1,4 +1,7 @@
-# Family Guy Project Overview 
+# Family Guy Project Overview
+
+# Reference
+[Family Guy Color Chart] (https://www.schemecolor.com/?s=Family+Guy)
 
 ### Table of Contents
 - [Summary]()
@@ -14,44 +17,34 @@
 
 Package | version
 --- | ---
-tidymodels | 0.1.2
-stringr | 1.4.0
+tidyverse | 1.3.1
 forcats | 0.5.0
 RColorBrewer | 1.1-2
-ggmosaic | 0.3.4
 ggpubr | 0.4.0
-FactoMiner | 2.4
-factoextra | 1.0.7
-probably | 0.0.6
-workflowsets | 0.0.1
-doParallel | 1.0.16
+tidytext | 0.3.1
 
 ### Business Requirement
 1.
 2.
 
 ### Data Collection
-> This Dataset consist of players who entered the drafted between the year 2000 - 2018
+> This Dataset consist of lines characters said for Season 1-10 & 12
 
 **(raw)**
 
 Feature | Datatype | Description
 --- | --- | ---
-player | chr | name of the player
-position | chr | position player played in college
-school | chr | where player played in college
-year | dbl | year player entered the draft
-height | dbl | height of player _(cm)_
-weight | dbl | weight of player _(lbs)_
-forty | dbl | how fast player runs 40yards _(seconds)_
-vertical | dbl | how high player jumps from a still position _(inches)_
-bench | dbl | how many times player can lift 225lbs
-broad_jump | dbl | how far can a player jump. From a balanced stance, the player explodes forward as far as he can and must land without moving _(inches)_
-three_cone | dbl | primarily run to evaluate the agility, quickness and fluidity of movement _(seconds)_
-shuttle | dbl | The shuttle (20yards), much like the 3-cone drill, test speed and acceleration. The only difference is that players are running laterally instead of forming a right angle.  _(seconds)_
-drafted | chr | What NFL team drafted player / Round / Pick / Year
+character | chr | name of the of the person in the series
+dialog | chr | line character says in the series
+seasons | chr | season where character said their lines
 
-**Feature Engineering**
+**Feature Engineering & Cleaning**
+
+Feature | Datatype | Description
+--- | --- | ---
+index | chr | added an index to keep track of what characters said in what season
+season | int | changed "seasons" to "season", and also removed the season from the data and just kept the number then changed it to a factor.
+character | int | removed "Maids and Butlers M&B" from the Analysis
 
 
 ## Summary
@@ -60,6 +53,34 @@ drafted | chr | What NFL team drafted player / Round / Pick / Year
 
 # Exploratory Data Analysis
 
+## Season: Total Lines
+Season | n
+--- | ---
+1 | 43
+2 | 129
+3 | 110
+4 | 155
+5 | 139
+6 | 94
+7 | 80
+8 | 117
+9 | 122
+10 | 168
+12 | 217
+
+## Character: Total Lines
+Character | n
+--- | ---
+Peter | 394
+Stewie | 269
+Brian | 211
+Lois | 184
+Chris | 113
+Meg | 85
+Quagmire | 78
+Cleveland | 40
+
+## Character: Line Count by Season
 
 ---
 
