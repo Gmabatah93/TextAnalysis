@@ -1,3 +1,19 @@
+---
+title: "Family Guy"
+author: "Isioma Mabatah"
+date: "8/14/2021"
+output: 
+  html_document:
+    theme: lumen
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+# Summary
+
+## Libraries
+```{r}
 library(tidyverse)
 library(forcats)
 theme_set(theme_minimal())
@@ -5,18 +21,21 @@ library(tidytext)
 library(RColorBrewer)
 library(grid)
 library(magick)
+```
 
-
-# Data ----
+## Data
+```{r}
+# Load Data
 family_raw <- read_csv("PROJECT_FamilyGuy/Data/Family_guy_dialog.csv")
-# - feature processing & cleaing
+
+# Feature processing & cleaing
 family <- family_raw %>% 
   mutate(index = row_number()) %>% 
   select(index, season = seasons, character, dialog) %>% 
   mutate(season = str_replace(season, "season", "") %>% as.integer %>% as.factor) %>% 
   filter(character != "Maids and Butlers M&B")
 
-# - color palette
+# color palette
 peter <- "#2A6431"
 lois <- "#F8784E"
 stewie <- "#EB0C42"
@@ -27,11 +46,10 @@ quagmire <- "#FAEE40"
 cleveland <- "#783204"
 
 family_guy_Palette <- c(brian,chris,cleveland,lois,meg,peter,quagmire,stewie)
+```
 
-# Counts
-family %>% count(season)
-family %>% count(character) %>% arrange(-n)
-
+# Exploratory Data Analysis
+```{r}
 # EDA
 family %>% 
   count(season, character) %>% 
@@ -310,4 +328,8 @@ gg_topWords_Season_Character <- function(season_num) {
   
 }
 gg_topWords_Season_Character(12)
+```
 
+## Modeling 
+### Model Fit
+### Model Results
