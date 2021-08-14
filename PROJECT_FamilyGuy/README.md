@@ -81,7 +81,7 @@ Quagmire | 78
 Cleveland | 40
 
 ## Character: Line Count by Season
-
+<img src="Images/family_Linecount.PNG" width="1000">
 ---
 
 # Modeling
