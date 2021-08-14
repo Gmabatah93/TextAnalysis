@@ -24,42 +24,6 @@ rm_scripts %>% count(name) %>%
     title = "Who talks the most",
     x = NULL, y = NULL
   )
-# Rick & Morty: QDAP ----
-
-# - Corpus
-clean_Corpus_RM <- function(corpus) {
-  corpus = tm_map(corpus, removePunctuation)
-  corpus = tm_map(corpus, stripWhitespace)
-  corpus = tm_map(corpus, content_transformer(tolower))
-  corpus = tm_map(corpus, removeNumbers)
-  corpus = tm_map(corpus, removeWords, c(stopwords("en")))
-  return(corpus)
-}
-
-rm_Corpus <- rm_scripts$line %>% 
-  VectorSource() %>% 
-  VCorpus()
-
-rm_Corpus_clean <- clean_Corpus_RM(rm_Corpus)
-
-# - Tidy
-rm_Corpus_clean %>% tidy() %>% 
-  unnest_tokens(word, text)
-
-# - Term Document Matrix
-stops_rm <- bind_rows(stop_words,
-                      tibble(
-                        word = "youre",
-                        lexicon = "CUSTOM")
-            )
-rm_tdm <- TermDocumentMatrix(rm_Corpus_clean)
-rm_tdm_M <- as.matrix(rm_tdm)
-rm_tf <- tibble(
-  word = rownames(rm_tdm_M),
-  freq = rowSums(rm_tdm_M)) %>% 
-  arrange(-freq) %>% 
-  anti_join(stops_rm)
-
 # Rick & Morty: tidytext ----
 
 # Bag of Words
@@ -117,10 +81,9 @@ rm_polarity %>% counts() %>% view()
 rm_polarity %>% plot()
 
 
-# Bing: 
+# BING: 
 rm_bing <- rm_tidy %>% inner_join(get_sentiments("bing"))
 rm_bing %>% count(sentiment)  
-
 # - Seasons
 rm_bing %>% 
   ggplot(aes(sentiment)) +
@@ -230,11 +193,55 @@ rm_bing %>%
   labs(title = "Season 3: Top Words by Character",
        x = NULL, y = NULL)
 
+rm_bing %>% 
+  count(word, sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(polarity = positive - negative) %>% 
+  mutate(pos_neg = ifelse(polarity > 0, "positive","negative")) %>% 
+  filter(abs(polarity) >= 10) %>% 
+  ggplot(aes(fct_reorder(word, polarity), polarity, fill = pos_neg)) +
+  geom_col() +
+  coord_flip()
+
+rm_bing %>% 
+  filter(name == "Rick") %>% 
+  count(index, season_num, sentiment) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  mutate(polarity = positive - negative,
+         season_num = factor(season_num)) %>% 
+  ggplot(aes(index, polarity, color = season_num)) +
+  geom_smooth(show.legend = FALSE) +
+  geom_hline(yintercept = 0, color = "red")
+
+
 
 # NRC
 rm_nrc <- rm_tidy %>% inner_join(get_sentiments("nrc"))
 rm_nrc %>% count(sentiment)  %>% arrange(-n)
 
+rm_nrc %>% 
+  filter(!grepl("positive|negative", sentiment)) %>% 
+  count(sentiment, word) %>% 
+  spread(sentiment, n, fill = 0) %>% 
+  data.frame(row.names = "word") %>% 
+  wordcloud::comparison.cloud(max.words = 50,
+                              title.size = 1.5)
+
+
+rm_nrc %>% 
+  filter(!grepl("positive|negative", sentiment)) %>% 
+  filter(name %in% rm_characters) %>% 
+  count(name, sentiment) %>% 
+  spread(name, n, fill = 0) 
+  
+rm_nrc %>% 
+  filter(name %in% rm_characters) %>% 
+  filter(!grepl("positive|negative", sentiment)) %>%
+  count(name, sentiment) %>% 
+  group_by(name) %>% 
+  mutate(percent_positive = 100 * n / sum(n)) %>% 
+  ggplot(aes(name, percent_positive, fill = sentiment)) +
+  geom_col()
 # - Season
 rm_nrc %>% 
   ggplot(aes(sentiment, fill = sentiment)) +
@@ -258,55 +265,22 @@ rm_nrc %>%
   theme_bw()
 
 # - Characters
-rm_nrc %>% 
-  filter(name %in% rm_characters) %>% 
-  count(name, word, sentiment) %>% 
-  group_by(name) %>% 
-  top_n(5, n) %>% 
-  ungroup() %>% 
-  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
-  theme_bw() +
-  labs(title = "Top Words by Character",
-       x = NULL, y = NULL)
 
-rm_nrc %>% 
-  filter(name %in% rm_characters,
-         season_num == 1) %>% 
-  count(name, word, sentiment) %>% 
-  group_by(name) %>% 
-  top_n(5, n) %>% 
+
+
+
+
+# AFINN
+rm_afinn <- rm_tidy %>% inner_join(get_sentiments("afinn"))
+rm_afinn %>% 
+  count(season_num, index, value) %>% 
+  group_by(season_num, index) %>% 
+  summarise(total_value = sum(value)) %>%
   ungroup() %>% 
-  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
-  theme_bw() +
-  labs(title = "Season 1: Top Words by Character",
-       x = NULL, y = NULL)
-rm_bing %>% 
-  filter(name %in% rm_characters,
-         season_num == 2) %>% 
-  count(name, word, sentiment) %>% 
-  group_by(name) %>% 
-  top_n(3, n) %>% 
-  ungroup() %>% 
-  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
-  theme_bw() +
-  labs(title = "Season 2: Top Words by Character",
-       x = NULL, y = NULL)
-rm_bing %>% 
-  filter(name %in% rm_characters,
-         season_num == 3) %>% 
-  count(name, word, sentiment) %>% 
-  group_by(name) %>% 
-  top_n(3, n) %>% 
-  ungroup() %>% 
-  ggplot(aes(n, fct_reorder(word, n), fill = sentiment)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(sentiment~ name, scales = "free", nrow = 2) +
-  theme_bw() +
-  labs(title = "Season 3: Top Words by Character",
-       x = NULL, y = NULL)
+  ggplot(aes(index, total_value, color = factor(season_num))) +
+  geom_smooth(show.legend = FALSE)
+
+rm_afinn %>% 
+  filter(name %in% rm_characters) %>% 
+  ggplot(aes(value, fill = name)) +
+  geom_density(alpha = 0.09)
