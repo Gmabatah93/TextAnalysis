@@ -13,7 +13,7 @@ output:
 # Summary
 
 ## Libraries
-```{r}
+```{r library, message=FALSE, echo=TRUE}
 library(tidyverse)
 library(forcats)
 theme_set(theme_minimal())
@@ -21,12 +21,13 @@ library(tidytext)
 library(RColorBrewer)
 library(grid)
 library(magick)
+library(cowplot)
 ```
 
 ## Data
-```{r}
+```{r data, message=FALSE, echo=TRUE}
 # Load Data
-family_raw <- read_csv("PROJECT_FamilyGuy/Data/Family_guy_dialog.csv")
+family_raw <- read_csv("Data/Family_guy_dialog.csv")
 
 # Feature processing & cleaing
 family <- family_raw %>% 
@@ -34,7 +35,9 @@ family <- family_raw %>%
   select(index, season = seasons, character, dialog) %>% 
   mutate(season = str_replace(season, "season", "") %>% as.integer %>% as.factor) %>% 
   filter(character != "Maids and Butlers M&B")
+```
 
+```{r palatte}
 # color palette
 peter <- "#2A6431"
 lois <- "#F8784E"
@@ -48,10 +51,11 @@ cleveland <- "#783204"
 family_guy_Palette <- c(brian,chris,cleveland,lois,meg,peter,quagmire,stewie)
 ```
 
+
 # Exploratory Data Analysis
-```{r}
+```{r counts, message=FALSE, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
 # EDA
-family %>% 
+gg_family_Linecount <- family %>% 
   count(season, character) %>% 
   ggplot(aes(fct_reorder(character, n), n, fill = character)) + 
   geom_col(show.legend = FALSE) +
@@ -67,9 +71,10 @@ family %>%
   ) +
   scale_fill_manual(values = family_guy_Palette)
 
-image_family <- image_read(path = "PROJECT_FamilyGuy/Images/famliyguy.PNG")
-grid.raster(image_family, x = 0.88, y = 0.18, height = 0.25)
-#
+gg_family_Linecount
+```
+
+```{r}
 # Family Guy: tidytext ----
 
 # Bag of Words
