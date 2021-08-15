@@ -14,7 +14,7 @@ output:
 
 ## Libraries
 
-```{r library, message=FALSE, echo=TRUE}
+```{r library, message=FALSE, warning=FALSE, echo=TRUE}
 library(tidyverse)
 library(forcats)
 theme_set(theme_minimal())
@@ -28,7 +28,7 @@ library(ggpubr)
 
 ## Data
 
-```{r data, message=FALSE, echo=TRUE}
+```{r data, message=FALSE, warning=FALSE, echo=TRUE}
 # Load Data
 family_raw <- read_csv("Data/Family_guy_dialog.csv")
 
@@ -57,31 +57,42 @@ family_guy_Palette <- c(brian,chris,cleveland,lois,meg,peter,quagmire,stewie)
 
 # Exploratory Data Analysis
 
+```{r count_Season}
+family %>% count(season) %>% 
+  knitr::kable(caption = "Season: Line Count")
+```
+
+```{r count_Character}
+family %>% count(character) %>% arrange(-n) %>% 
+  knitr::kable(caption = "Character: Line Count")
+```
+
 ```{r counts, message=FALSE, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
 # EDA
-gg_family_Linecount <- family %>% 
+family %>% 
   count(season, character) %>% 
   ggplot(aes(fct_reorder(character, n), n, fill = character)) + 
-  geom_col(show.legend = FALSE) +
+  geom_col(show.legend = FALSE, alpha = 0.4) +
   geom_label(aes(label = n), size = 3, color = "white") +
   facet_wrap(~season, scales = "free_x", nrow = 3) +
   coord_flip() +
   labs(title = "Family Guy: Line Count") +
-  theme_bw() +
   theme(
-    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
     axis.title = element_blank(),
     axis.text.y = element_text(face = "bold"),
+    axis.text.x = element_blank(),
+    strip.text = element_text(face = "bold", size = 15, color = "grey35"),
     legend.position = "none"
   ) +
   scale_fill_manual(values = family_guy_Palette)
-
-gg_family_Linecount
 ```
 
 ## Text Preprocessing
 
-```{r textPrep, message=FALSE, echo=TRUE}
+### Term Frequency [TABS] {.tabset .tabset-fade}
+
+```{r tf, message=FALSE, echo=TRUE}
 # Bag of Words
 family_tidy <- family %>% 
   unnest_tokens(word, dialog) %>% 
@@ -92,6 +103,98 @@ family_tf <- family_tidy %>%
   count(word) %>% 
   arrange(-n)
 
+family_tf %>% 
+  top_n(25, n) %>% 
+  knitr::kable(caption = "Term Frequency: Top 25")
+```
+
+#### By Character
+
+```{r tf_Character, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
+
+# Top Words (Character)
+family_tidy %>% 
+  group_by(character) %>%
+  count(word) %>% 
+  arrange(-n) %>% 
+  top_n(3, n) %>% 
+  ggplot(aes(n, fct_reorder(word,n), fill = character)) +
+  geom_col(show.legend = FALSE, alpha = 0.4) +
+  geom_label(aes(label = n), color = "white") +
+  facet_wrap(~character, scales = "free") +
+  labs(title = "Term Frequency: Top 5",
+       x = NULL, y = NULL) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold"),
+    axis.text.x = element_blank(),
+    strip.text = element_text(face = "bold", size = 15, color = "grey35"),
+    legend.position = "none"
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+```
+
+#### By Season
+
+```{r tf_Season, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
+# Top Words (Season 1-6)
+family_tidy %>% 
+  filter(season %in% 1:6) %>% 
+  group_by(character) %>%
+  count(word) %>% 
+  arrange(-n) %>% 
+  top_n(4, n) %>% 
+  ggplot(aes(n, fct_reorder(word,n), fill = character)) +
+  geom_col(show.legend = FALSE, alpha = 0.4) +
+  geom_label(aes(label = n), color = "white") +
+  facet_wrap(~character, scales = "free") +
+  labs(
+    title = "Term Frequency: Top 5",
+    subtitle = "Season: 1-6",
+    x = NULL, y = NULL
+  ) +
+ theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.text.y = element_text(face = "bold"),
+    axis.text.x = element_blank(),
+    strip.text = element_text(face = "bold", size = 15, color = "grey35"),
+    legend.position = "none"
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+
+
+# Top Words (Season 6-12)
+family_tidy %>% 
+  filter(season %in% 6:12) %>% 
+  group_by(character) %>%
+  count(word) %>% 
+  arrange(-n) %>% 
+  top_n(5, n) %>% 
+  ggplot(aes(n, fct_reorder(word,n), fill = character)) +
+  geom_col(show.legend = FALSE, alpha = 0.4) +
+  geom_label(aes(label = n), color = "white") +
+  facet_wrap(~character, scales = "free") +
+  labs(
+    title = "Term Frequency: Top 5",
+    subtitle = "Season: 6-12",
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
+    axis.text.y = element_text(face = "bold"),
+    axis.text.x = element_blank(),
+    strip.text = element_text(face = "bold", size = 15, color = "grey35"),
+    legend.position = "none"
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+```
+
+#### Bigram
+
+```{r bigram, message=FALSE, echo=TRUE}
 # Bigram
 family_bigram <- family %>% 
   unnest_tokens(bigram, dialog,
@@ -107,77 +210,8 @@ family_bigram_clean_unite <-
   unite(bigram, word1, word2, sep = " ") %>% 
   filter(bigram != "NA NA")
 
-family_bigram_clean_unite %>% count(bigram) %>% arrange(-n)
-```
-
-### Term Frequency: Analysis
-
-```{r season, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
-
-# Top Words (Character)
-family_tidy %>% 
-  group_by(character) %>%
-  count(word) %>% 
-  arrange(-n) %>% 
-  top_n(3, n) %>% 
-  ggplot(aes(n, fct_reorder(word,n), fill = character)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~character, scales = "free") +
-  labs(title = "Top Words",
-       x = NULL, y = NULL) +
-  theme(
-    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
-    axis.title = element_blank(),
-    axis.text.y = element_text(face = "bold")
-  ) +
-  scale_fill_manual(values = family_guy_Palette)
-
-# Top Words (Season 1-6)
-family_tidy %>% 
-  filter(season %in% 1:6) %>% 
-  group_by(character) %>%
-  count(word) %>% 
-  arrange(-n) %>% 
-  top_n(5, n) %>% 
-  ggplot(aes(n, fct_reorder(word,n), fill = character)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~character, scales = "free") +
-  labs(
-    title = "Top Words",
-    subtitle = "Season: 1-6",
-    x = NULL, y = NULL
-  ) +
-  theme(
-    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
-    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.3, size = 15),
-    axis.title = element_blank(),
-    axis.text.y = element_text(face = "bold")
-  ) +
-  scale_fill_manual(values = family_guy_Palette)
-
-
-# Top Words (Season 6-12)
-family_tidy %>% 
-  filter(season %in% 6:12) %>% 
-  group_by(character) %>%
-  count(word) %>% 
-  arrange(-n) %>% 
-  top_n(5, n) %>% 
-  ggplot(aes(n, fct_reorder(word,n), fill = character)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~character, scales = "free") +
-  labs(
-    title = "Top Words",
-    subtitle = "Season: 6-12",
-    x = NULL, y = NULL
-  ) +
-  theme(
-    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
-    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.3, size = 15),
-    axis.title = element_blank(),
-    axis.text.y = element_text(face = "bold")
-  ) +
-  scale_fill_manual(values = family_guy_Palette)
+family_bigram_clean_unite %>% count(bigram) %>% arrange(-n) %>% top_n(25, n) %>% 
+  knitr::kable(caption = "Bigram: Top 25")
 
 # Top Bigram: Popular Words (Character)
 family_bigram_clean_unite %>% 
@@ -218,6 +252,7 @@ family_bigram_clean_unite %>%
     axis.text.y = element_text(face = "bold")
   ) +
   scale_fill_manual(values = family_guy_Palette)
+
 ```
 
 # Sentiment Analysis [TABS] {.tabset .tabset-fade}
@@ -228,8 +263,6 @@ family_bigram_clean_unite %>%
 family_bing <- family_tidy %>% inner_join(get_sentiments("bing"))
 family_bing %>% count(sentiment)
 ```
-
-### Polarity
 
 ```{r bing_polarity, message=FALSE, echo=TRUE, fig.align='center', fig.height=3, fig.width=10}
 # By Index
@@ -455,8 +488,6 @@ family_bing %>%
   mutate(overall = positive - negative)
 ```
 
-### Polarity: Words (Season)
-
 ```{r bing_polarity_words_Season, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=6, fig.width=8}
 # Season: 1-6
 family_bing %>% 
@@ -500,8 +531,6 @@ family_bing %>%
     axis.title.x = element_text(face = "bold", size = 10)
   )
 ```
-
-### Polarity: Words (Character)
 
 ```{r bing_polarity_words_Character, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=3, fig.width=12}
 # Total by Character
@@ -651,8 +680,10 @@ family_bing %>%
   scale_fill_manual(values = c("tomato","forestgreen"))
 ```
 
-### nrc
+## NRC
 
-### afinn
+## AFINN
+
+# Topic Modeling
 
 END - Sentiment Analysis TABS - END
