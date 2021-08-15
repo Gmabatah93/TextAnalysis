@@ -53,38 +53,32 @@ character | int | removed "Maids and Butlers M&B" from the Analysis
 
 # Exploratory Data Analysis
 
-## Season: Total Lines
-Season | n
---- | ---
-1 | 43
-2 | 129
-3 | 110
-4 | 155
-5 | 139
-6 | 94
-7 | 80
-8 | 117
+## Count: Lines
+Season | n | | Character | n
+--- | --- | --- | --- | ---
+1 | 43 | | Peter | 394
+2 | 129 | | Stewie | 269
+3 | 110 | | Brian | 211
+4 | 155 | | Lois | 184
+5 | 139 | | Chris | 113
+6 | 94 | | Meg | 85
+7 | 80 | | Quagmire | 78
+8 | 117 | | Cleveland | 40
 9 | 122
 10 | 168
 12 | 217
 
-## Character: Total Lines
-Character | n
---- | ---
-Peter | 394
-Stewie | 269
-Brian | 211
-Lois | 184
-Chris | 113
-Meg | 85
-Quagmire | 78
-Cleveland | 40
-
-## Character: Line Count by Season
+## Count: Character by Season
 <img src="Images/family_Linecount.PNG" width="1000">
+
+## Term Frequency
 ---
 
-# Modeling
+# Sentiment Analysis
+
+---
+
+# Topic Modeling
 
 ---
 
