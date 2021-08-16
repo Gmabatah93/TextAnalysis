@@ -19,10 +19,6 @@ library(tidyverse)
 library(forcats)
 theme_set(theme_minimal())
 library(tidytext)
-library(RColorBrewer)
-library(grid)
-library(magick)
-library(cowplot)
 library(ggpubr)
 ```
 
@@ -76,9 +72,13 @@ family %>%
   geom_label(aes(label = n), size = 3, color = "white") +
   facet_wrap(~season, scales = "free_x", nrow = 3) +
   coord_flip() +
-  labs(title = "Family Guy: Line Count") +
+  labs(
+    title = "Family Guy: Line Count",
+    subtitle = "Season"
+  ) +
   theme(
     plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.5, size = 20),
+    plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.5, size = 15),
     axis.title = element_blank(),
     axis.text.y = element_text(face = "bold"),
     axis.text.x = element_blank(),
@@ -88,15 +88,22 @@ family %>%
   scale_fill_manual(values = family_guy_Palette)
 ```
 
-## Text Preprocessing
+> **NOTE (Count):** Peter had the most lines for the majority of the seasons. However for seasons 8 and 9 the focus shift to Stewie and Brian.
 
-### Term Frequency [TABS] {.tabset .tabset-fade}
+## Term Frequency [TABS] {.tabset .tabset-fade}
 
 ```{r tf, message=FALSE, echo=TRUE}
+# Stop Words
+stops_Family <- 
+  bind_rows(stop_words,
+            tibble(
+              word = c("gonna","uh","im","dont","youre","ive","wanna","hey"),
+              lexicon = "CUSTOM")
+  )
 # Bag of Words
 family_tidy <- family %>% 
   unnest_tokens(word, dialog) %>% 
-  anti_join(stop_words)
+  anti_join(stops_Family)
 
 # Term Frequency
 family_tf <- family_tidy %>% 
@@ -108,7 +115,7 @@ family_tf %>%
   knitr::kable(caption = "Term Frequency: Top 25")
 ```
 
-#### By Character
+### By Character
 
 ```{r tf_Character, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
 
@@ -135,7 +142,21 @@ family_tidy %>%
   scale_fill_manual(values = family_guy_Palette)
 ```
 
-#### By Season
+> **NOTE (Term Frequecy):** Based on the Term Frequency
+>
+>  - Most of the characters are talking the Peter the most _(Lois, Brain, Quagmire)_.
+>
+>  - Peter and Lois talks to each other the most.
+>
+>  - Brian talks to Peter and Stewie the most.
+>
+>  - Stewie talks to Brian the most.
+>
+>  - Chris and Meg talks to each other the most.
+>
+>  - Meg talks to Chris the most.
+
+### By Season
 
 ```{r tf_Season, echo=TRUE, fig.align='center', fig.height=8, fig.width=10}
 # Top Words (Season 1-6)
@@ -165,9 +186,9 @@ family_tidy %>%
   scale_fill_manual(values = family_guy_Palette)
 
 
-# Top Words (Season 6-12)
+# Top Words (Season 7-12)
 family_tidy %>% 
-  filter(season %in% 6:12) %>% 
+  filter(season %in% 7:12) %>% 
   group_by(character) %>%
   count(word) %>% 
   arrange(-n) %>% 
@@ -178,7 +199,7 @@ family_tidy %>%
   facet_wrap(~character, scales = "free") +
   labs(
     title = "Term Frequency: Top 5",
-    subtitle = "Season: 6-12",
+    subtitle = "Season: 7-12",
     x = NULL, y = NULL
   ) +
   theme(
@@ -192,7 +213,27 @@ family_tidy %>%
   scale_fill_manual(values = family_guy_Palette)
 ```
 
-#### Bigram
+> **NOTE (Term Frequency):** Based on teh Term Frequency by Season
+
+> **_Season 1-6_**
+>
+> - The majority of the dialogue is between Peter and Lois
+>
+> - Brain also refers to Peter frequently.
+>
+> - Stewie refers to Brian Frequently
+
+> **_Season 7-12_**
+>
+> - The majority of the dialogue is spread betweeen Peter and Lois and Stewie and Brian.
+>
+> - Brian talks to Stewie more during the back half of the Series as opposed to Peter.
+>
+> - Quagmire gets more airtime consisting of him talking to Peter.
+>
+> - Chris and Meg also gets more airtime talking to each other
+
+### Bigram
 
 ```{r bigram, message=FALSE, echo=TRUE}
 # Bigram
@@ -202,8 +243,8 @@ family_bigram <- family %>%
                 n = 2)
 family_bigram_clean_seperate <- family_bigram %>% 
   separate(bigram, c("word1","word2"), sep = " ") %>% 
-  filter(!word1 %in% stop_words$word) %>% 
-  filter(!word2 %in% stop_words$word)
+  filter(!word1 %in% stops_Family$word) %>% 
+  filter(!word2 %in% stops_Family$word)
 
 family_bigram_clean_unite <- 
   family_bigram_clean_seperate %>% 
@@ -230,7 +271,7 @@ family_bigram_clean_unite %>%
   ) +
   scale_fill_manual(values = family_guy_Palette)
 
-# Top Bigram: (Season 1-6)
+# Top Bigram: (Season)
 family_bigram_clean_unite %>% 
   group_by(character) %>%
   count(bigram) %>% 
@@ -248,6 +289,78 @@ family_bigram_clean_unite %>%
   theme(
     plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
     plot.subtitle = element_text(color = "darkgoldenrod", hjust = 0.3, size = 15),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold")
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+```
+
+```{r bigram_words, message=FALSE, echo=TRUE}
+family_bigram_clean_seperate %>% 
+  filter(word1 == "peter") %>% 
+  group_by(character) %>% 
+  count(word1, word2) %>% 
+  unite(bigram, word1, word2, sep = " ") %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(bigram,n), fill = character)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~character, scales = "free") +
+  labs(title = "Top Bigram") +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold")
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+
+family_bigram_clean_seperate %>% 
+  filter(word2 == "peter") %>% 
+  group_by(character) %>% 
+  count(word1, word2) %>% 
+  unite(bigram, word1, word2, sep = " ") %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(bigram,n), fill = character)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~character, scales = "free") +
+  labs(title = "Top Bigram") +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold")
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+
+
+
+family_bigram_clean_seperate %>% 
+  filter(word1 == "damn") %>% 
+  group_by(character) %>% 
+  count(word1, word2) %>% 
+  unite(bigram, word1, word2, sep = " ") %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(bigram,n), fill = character)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~character, scales = "free") +
+  labs(title = "Top Bigram") +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold")
+  ) +
+  scale_fill_manual(values = family_guy_Palette)
+
+family_bigram_clean_seperate %>% 
+  filter(word2 == "damn") %>% 
+  group_by(character) %>% 
+  count(word1, word2) %>% 
+  unite(bigram, word1, word2, sep = " ") %>% 
+  ungroup() %>% 
+  ggplot(aes(n, fct_reorder(bigram,n), fill = character)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~character, scales = "free") +
+  labs(title = "Top Bigram") +
+  theme(
+    plot.title = element_text(face = "bold", color = "#2A2A57", hjust = 0.3, size = 20),
     axis.title = element_blank(),
     axis.text.y = element_text(face = "bold")
   ) +
