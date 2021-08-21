@@ -33,52 +33,7 @@ _makes use of vocabulary, word structure, part of speech tagging and grammer rel
 ## Term - Frequency Inverse-Document-Frequency
 <img src="Images/tfidf.PNG" width="500">
 
-# Latent Dirichlet Allocation: Explanation 1
-<img src="Images/LDA_Algorithm.PNG" width="500">
-
-1. Initialize parameters
-<img src="Images/LDA_Algorithm.PNG" width="500">
-
-2. Initialize topic assignments randomly
-<img src="Images/LDA_topic.PNG" width="500">
-
-3. Iterate for each word in each document:
-  - Resample topic for word, given all other words and their current topic assignments
-<img src="Images/LDA_Iterate.PNG" width="500">
-<img src="Images/LDA_Resample.PNG" width="500">
-
-4. Get results
-5. Evaluate Model
-
-# Latent Dirichlet Allocation: Explanation 2
-
-## Generative Model
-> 1. Choose a distribution _(Dirichlet)_ over topics
-> 2. For each word draw a colored _"coin"_ from the distribution
-> 3. Look the distribution _(over terms associated with that coin)_ and draw the word from that distribution
-> 4. Repeat for each document
-
-<img src="Images/LDA1.PNG" width="800">
-
-- Each **Topic** is a distribution over terms in the _fixed_ vocabulary
-- Different **Topics** has different words with different probabilities
-
-## Graphical Model
-<img src="Images/Graphic.PNG" width="500">
-<img src="Images/Graphic_LDA.PNG" width="800">
-
-- Topics:
-  + Each **topic** is a distribution _(Dirichlet)_ over terms
-
-- Topic Assignment 'colored coin"
-  + there's a z "colored coin" for every word.
-
-## Dirichlet Distribution
-
-- The parameter **a** controls the mean shape and sparsity of Thetha  
-
-
-# Latent Dirichlet Allocation: Explanation 3
+# Latent Dirichlet Allocation
 
 <img src="Images/LDA3_Graphic.PNG" width="800">
 <img src="Images/LDA3_Formula.PNG" width="800">
@@ -105,3 +60,8 @@ _makes use of vocabulary, word structure, part of speech tagging and grammer rel
 
 <img src="Images/LDA3_Gibbs1.PNG" width="800">
 <img src="Images/LDA3_Gibbs2.PNG" width="800">
+
+## Determining the number of k
+- **Topic Coherence:** examine the words in topics, decide if they make sense
+- **Log-Likelihood:** how plausible model parameters are given the data
+- **Perplexity:** a measure of model "surprise" at the data

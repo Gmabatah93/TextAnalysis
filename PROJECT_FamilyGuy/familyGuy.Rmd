@@ -102,6 +102,8 @@ library(tidyverse)
 library(forcats)
 theme_set(theme_minimal())
 library(tidytext)
+
+library(spacyr)
 library(ggpubr)
 library(topicmodels)
 ```
@@ -142,6 +144,7 @@ meg <- "#E06EAA"
 
 family_guy_Palette <- c(brian,chris,lois,meg,peter,stewie)
 ```
+
 
 ## Counts
 
@@ -208,6 +211,7 @@ family %>%
 
 > **NOTE (Count):** Peter had the most lines for the majority of the seasons. However for seasons 8 and 9 the focus shift to Stewie and Brian.
 
+
 ## Term Frequency [TABS] {.tabset .tabset-fade}
 
 ```{r tf, message=FALSE, echo=TRUE}
@@ -215,7 +219,7 @@ family %>%
 stops_Family <- 
   bind_rows(stop_words,
             tibble(
-              word = c("gonna","uh","im","dont","youre","ive","wanna","hey"),
+              word = c("gonna","uh","im","dont","youre","ive","wanna","hey", "yeah", "um"),
               lexicon = "CUSTOM")
   )
 # Bag of Words
@@ -523,6 +527,7 @@ family_bigram_clean_seperate %>%
   scale_fill_manual(values = family_guy_Palette)
 
 ```
+
 
 # Sentiment Analysis [TABS] {.tabset .tabset-fade}
 
@@ -1182,53 +1187,160 @@ family_dtm_Character <- family_tf_Character %>%
 ```{r lda_2, warning=FALSE, message=FALSE, echo=FALSE}
 
 # Season
-lda_Season_2 = LDA(x = family_dtm_Season, k = 2, 
+lda_Season_2_a0 = LDA(x = family_dtm_Season, k = 2, 
+                      method = "Gibbs", 
+                      control = list(alpha = 0, delta = 0.1, seed = 123))
+
+lda_Season_2_a1 = LDA(x = family_dtm_Season, k = 2, 
                    method = "Gibbs", 
                    control = list(alpha = 1, delta = 0.1, seed = 123))
 
+lda_Season_2_a3 = LDA(x = family_dtm_Season, k = 2, 
+                        method = "Gibbs", 
+                        control = list(alpha = 3, delta = 0.1, seed = 123))
+
 # Character
-lda_Character_2 = LDA(x = family_dtm_Character, k = 2, 
+lda_Character_2_a0 = LDA(x = family_dtm_Character, k = 2, 
+                         method = "Gibbs", 
+                         control = list(alpha = 0, delta = 0.1, seed = 123))
+
+
+lda_Character_2_a1 = LDA(x = family_dtm_Character, k = 2, 
                       method = "Gibbs", 
                       control = list(alpha = 1, delta = 0.1, seed = 123))
+
+lda_Character_2_a3 = LDA(x = family_dtm_Character, k = 2, 
+                           method = "Gibbs", 
+                           control = list(alpha = 3, delta = 0.1, seed = 123))
+
 ```
 
-```{r lda_2_topics, warning=FALSE, message=FALSE, echo=FALSE}
+```{r lda_2_topics_Season, warning=FALSE, message=FALSE, echo=FALSE}
 
 # Season
-lda_Season_2 %>% tidy(matrix = "gamma") %>% 
+gg_lda_2_a0_Season <- lda_Season_2_a0 %>% tidy(matrix = "gamma") %>% 
   mutate(
     topic = topic %>% factor,
     document = as.integer(document)
   ) %>% 
   ggplot(aes(document, gamma, color = topic)) +
   geom_line() +
-  scale_x_continuous(name = "Season", n.breaks = 11, limits = c(1,12)) +
-  labs(title = "Topic Probabilities")
+  scale_x_continuous(n.breaks = 11, limits = c(1,12)) +
+  labs(
+    subtitle = "alpha = 0",
+    x = NULL
+  ) +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 15, color = "red"),
+    axis.text.x = element_text(face = "bold", size = 12, color = "darkgoldenrod"),
+    legend.position = "none"
+  )
 
-lda_Season_2 %>% tidy(matrix = "gamma") %>% 
+gg_lda_2_a1_Season <- lda_Season_2_a1 %>% tidy(matrix = "gamma") %>% 
   mutate(
     topic = topic %>% factor,
-    document = as.integer(document) %>% factor(levels = c(1,2,3,4,5,6,7,8,9,10,12))
+    document = as.integer(document)
   ) %>% 
-  ggplot(aes(document, gamma, fill = topic)) +
-  geom_col() +
-  labs(title = "Topic Probabilities")
+  ggplot(aes(document, gamma, color = topic)) +
+  geom_line() +
+  scale_x_continuous(n.breaks = 11, limits = c(1,12)) +
+  labs(
+    subtitle = "alpha = 1", 
+    x = NULL
+  ) +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 15, color = "red"),
+    axis.text.x = element_text(face = "bold", size = 12, color = "darkgoldenrod"),
+    legend.position = "none"
+  )
 
+gg_lda_2_a3_Season <- lda_Season_2_a3 %>% tidy(matrix = "gamma") %>% 
+  mutate(
+    topic = topic %>% factor,
+    document = as.integer(document)
+  ) %>% 
+  ggplot(aes(document, gamma, color = topic)) +
+  geom_line() +
+  scale_x_continuous(n.breaks = 11, limits = c(1,12)) +
+  labs(
+    subtitle = "alpha = 3",
+    x = NULL
+  ) +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 15, color = "red"),
+    axis.text.x = element_text(face = "bold", size = 12, color = "darkgoldenrod"),
+    legend.position = "none"
+  )
+```
+
+```{r lda_2_topics_Season_VIZ, warning=FALSE, message=FALSE, echo=FALSE, fig.align='center', fig.height=5, fig.width=15}
+
+# Visual
+ggarrange(gg_lda_2_a0_Season, gg_lda_2_a1_Season, gg_lda_2_a3_Season, nrow = 1)
+```
+
+```{r lda_2_topics_Character, warning=FALSE, message=FALSE, echo=FALSE}
 # Character
-lda_Character_2 %>% tidy(matrix = "gamma") %>%
+gg_lda_2_a0_Character <- lda_Character_2_a0 %>% tidy(matrix = "gamma") %>%
   mutate(
     document = factor(document),
     topic = factor(topic)
   ) %>% 
   ggplot(aes(document, gamma, fill = topic)) +
   geom_col() +
-  labs(title = "Topic Probabilities")
+  labs(
+    x = NULL
+  ) +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 15, color = "red"),
+    axis.text.x = element_text(face = "bold", size = 12, color = "gray35"),
+    legend.position = "none"
+  )
+
+gg_lda_2_a1_Character <- lda_Character_2_a1 %>% tidy(matrix = "gamma") %>%
+  mutate(
+    document = factor(document),
+    topic = factor(topic)
+  ) %>% 
+  ggplot(aes(document, gamma, fill = topic)) +
+  geom_col() +
+  labs(
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 15, color = "red"),
+    axis.text.x = element_text(face = "bold", size = 12, color = "gray35"),
+    legend.position = "none"
+  )
+
+gg_lda_2_a3_Character <- lda_Character_2_a3 %>% tidy(matrix = "gamma") %>%
+  mutate(
+    document = factor(document),
+    topic = factor(topic)
+  ) %>% 
+  ggplot(aes(document, gamma, fill = topic)) +
+  geom_col() +
+  labs(
+    x = NULL, y = NULL
+  ) +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 15, color = "red"),
+    axis.text.x = element_text(face = "bold", size = 12, color = "gray35"),
+    legend.position = "none"
+  )
+
 ```
 
-```{r lda_2_words, warning=FALSE, message=FALSE, echo=FALSE}
+```{r lda_2_topics_Character_VIZ, warning=FALSE, message=FALSE, echo=FALSE, fig.align='center', fig.height=5, fig.width=15}
+
+# Visual 
+ggarrange(gg_lda_2_a0_Character, gg_lda_2_a1_Character, gg_lda_2_a3_Character, nrow = 1)
+```
+
+```{r lda_2_words_Season, warning=FALSE, message=FALSE, echo=FALSE}
 
 # Season
-lda_Season_2 %>% 
+gg_lda_2_a0__word_Season <- lda_Season_2_a0 %>% 
   tidy(matrix = "beta") %>% 
   mutate(topic = factor(topic)) %>% 
   group_by(topic) %>% 
@@ -1237,12 +1349,14 @@ lda_Season_2 %>%
   geom_col(show.legend = FALSE) +
   facet_wrap(~topic, scales = "free") +
   labs(
-    title = "Word Probabilities",
-    subtitle = "season"
+    y = NULL
+  ) +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 15, color = "red"),
+    legend.position = "none"
   )
 
-# Character
-lda_Character_2 %>% 
+gg_lda_2_a1__word_Season <- lda_Season_2_a1 %>% 
   tidy(matrix = "beta") %>% 
   mutate(topic = factor(topic)) %>% 
   group_by(topic) %>% 
@@ -1251,10 +1365,92 @@ lda_Character_2 %>%
   geom_col(show.legend = FALSE) +
   facet_wrap(~topic, scales = "free") +
   labs(
-    title = "Word Probabilities",
-    subtitle = "character"
+    y = NULL
+  ) +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 15, color = "red"),
+    legend.position = "none"
+  )
+
+gg_lda_2_a3__word_Season <- lda_Season_2_a3 %>% 
+  tidy(matrix = "beta") %>% 
+  mutate(topic = factor(topic)) %>% 
+  group_by(topic) %>% 
+  top_n(n = 10, wt = beta) %>% 
+  ggplot(aes(beta, fct_reorder(term, beta), fill = topic)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~topic, scales = "free") +
+  labs(
+    y = NULL
+  ) +
+  theme(
+    plot.subtitle = element_text(hjust = 0.5, face = "italic", size = 15, color = "red"),
+    legend.position = "none"
   )
 ```
+
+```{r lda_2_words_Season_VIZ, warning=FALSE, message=FALSE, echo=FALSE, fig.align='center', fig.height=5, fig.width=15}
+
+# Visual
+ggarrange(gg_lda_2_a0__word_Season, gg_lda_2_a1__word_Season, gg_lda_2_a3__word_Season, nrow = 1)
+```
+
+```{r lda_2_words_Character, warning=FALSE, message=FALSE, echo=FALSE}
+
+# Character
+gg_lda_2_a0__word_Character <- lda_Character_2_a0 %>% 
+  tidy(matrix = "beta") %>% 
+  mutate(topic = factor(topic)) %>% 
+  group_by(topic) %>% 
+  top_n(n = 10, wt = beta) %>% 
+  ggplot(aes(beta, fct_reorder(term, beta), fill = topic)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~topic, scales = "free") +
+  labs(
+    y = NULL
+  ) +
+  theme(
+    legend.position = "none"
+  )
+
+gg_lda_2_a1__word_Character <- lda_Character_2_a1 %>% 
+  tidy(matrix = "beta") %>% 
+  mutate(topic = factor(topic)) %>% 
+  group_by(topic) %>% 
+  top_n(n = 10, wt = beta) %>% 
+  ggplot(aes(beta, fct_reorder(term, beta), fill = topic)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~topic, scales = "free") +
+  labs(
+    y = NULL
+  ) +
+  theme(
+    legend.position = "none"
+  )
+
+gg_lda_2_a3__word_Character <- lda_Character_2_a3 %>% 
+  tidy(matrix = "beta") %>% 
+  mutate(topic = factor(topic)) %>% 
+  group_by(topic) %>% 
+  top_n(n = 10, wt = beta) %>% 
+  ggplot(aes(beta, fct_reorder(term, beta), fill = topic)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~topic, scales = "free") +
+  labs(
+    y = NULL
+  ) +
+  theme(
+    legend.position = "none"
+  )
+```
+
+```{r lda_2_words_Character_VIZ, warning=FALSE, message=FALSE, echo=FALSE, fig.align='center', fig.height=5, fig.width=15}
+
+# Visual
+ggarrange(gg_lda_2_a0__word_Character, gg_lda_2_a1__word_Character, gg_lda_2_a3__word_Character, nrow = 1)
+
+```
+
 
 ## 3 Topics
 
@@ -1282,15 +1478,6 @@ lda_Season_3 %>% tidy(matrix = "gamma") %>%
   ggplot(aes(document, gamma, color = topic)) +
   geom_line() +
   scale_x_continuous(name = "Season", n.breaks = 11, limits = c(1,12)) +
-  labs(title = "Topic Probabilities")
-
-lda_Season_3 %>% tidy(matrix = "gamma") %>% 
-  mutate(
-    topic = topic %>% factor,
-    document = as.integer(document) %>% factor(levels = c(1,2,3,4,5,6,7,8,9,10,12))
-  ) %>% 
-  ggplot(aes(document, gamma, fill = topic)) +
-  geom_col() +
   labs(title = "Topic Probabilities")
 
 # Character
@@ -1335,6 +1522,7 @@ lda_Character_3 %>%
   )
 ```
 
+
 ## 4 Topics
 
 ```{r lda_4, warning=FALSE, message=FALSE, echo=FALSE}
@@ -1362,17 +1550,6 @@ lda_Season_4 %>% tidy(matrix = "gamma") %>%
   geom_line() +
   scale_x_continuous(name = "Season", n.breaks = 11, limits = c(1,12)) +
   labs(title = "Topic Probabilities")
-
-lda_Season_4 %>% tidy(matrix = "gamma") %>% 
-  mutate(
-    topic = topic %>% factor,
-    document = as.integer(document) %>% factor(levels = c(1,2,3,4,5,6,7,8,9,10,12))
-  ) %>% 
-  ggplot(aes(document, gamma, fill = topic)) +
-  geom_col() +
-  labs(
-    title = "Topic Probabilities"
-  )
 
 # Character
 lda_Character_4 %>% tidy(matrix = "gamma") %>%
@@ -1417,3 +1594,19 @@ lda_Character_4 %>%
     subtitle = "character"
   )
 ```
+
+### Model Evaluation
+
+```{r}
+tibble(
+  document = "Season",
+  k = c(2,2,2),
+  alpha = c(0,1,3),
+  delta = 0.1,
+  logLike = c(logLik(lda_Season_2_a0), logLik(lda_Season_2_a1), logLik(lda_Season_2_a3)),
+  perplexity = c(perplexity(lda_Season_2_a0, family_dtm_Season),
+                 perplexity(lda_Season_2_a1, family_dtm_Season), 
+                 perplexity(lda_Season_2_a3, family_dtm_Season))
+)
+```
+
