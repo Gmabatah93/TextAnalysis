@@ -1,5 +1,7 @@
 # Regular Expressions
 
+# Pipeline
+
 # Text Preprocessing
 > **Corpus:** collection of text documents. _[ Corpus / Documents / Paragraphs / Sentences / Tokens ]_.\
 **Tokens:** smaller units of text. _[ words / phrases / ngrams]_.\
