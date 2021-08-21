@@ -98,11 +98,12 @@ output:
 ## Libraries
 
 ```{r library, message=FALSE, warning=FALSE, echo=TRUE}
+
 library(tidyverse)
 library(forcats)
 theme_set(theme_minimal())
 library(tidytext)
-
+library(quanteda)
 library(spacyr)
 library(ggpubr)
 library(topicmodels)
@@ -113,7 +114,6 @@ library(topicmodels)
 ## Data
 
 ```{r data, message=FALSE, warning=FALSE, echo=TRUE}
-
 # Load Data
 family_raw <- read_csv("Data/Family_guy_dialog.csv")
 
@@ -212,9 +212,9 @@ family %>%
 > **NOTE (Count):** Peter had the most lines for the majority of the seasons. However for seasons 8 and 9 the focus shift to Stewie and Brian.
 
 
-## Term Frequency [TABS] {.tabset .tabset-fade}
+## Part of Speech
 
-```{r tf, message=FALSE, echo=TRUE}
+```{r tidy}
 # Stop Words
 stops_Family <- 
   bind_rows(stop_words,
@@ -222,10 +222,25 @@ stops_Family <-
               word = c("gonna","uh","im","dont","youre","ive","wanna","hey", "yeah", "um"),
               lexicon = "CUSTOM")
   )
+
 # Bag of Words
 family_tidy <- family %>% 
   unnest_tokens(word, dialog) %>% 
-  anti_join(stops_Family)
+  anti_join(stops_Family) 
+
+# Part of Speech Tagging
+family_POS <- family_tidy %>% 
+  inner_join(parts_of_speech) %>% 
+  mutate(pos = factor(pos))
+
+# Visual
+family_POS %>% head(10) %>% 
+  knitr::kable(caption = "Family Tidy")
+```
+
+## Term Frequency [TABS] {.tabset .tabset-fade}
+
+```{r tf, message=FALSE, echo=TRUE}
 
 # Term Frequency
 family_tf <- family_tidy %>% 
