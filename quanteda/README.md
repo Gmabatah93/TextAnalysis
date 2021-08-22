@@ -1,5 +1,8 @@
 # quanteda
 
+> Reference
+> - [tutorial](https://tutorials.quanteda.io/)
+> - [quanteda.io](https://quanteda.io/index.html)
 ## Corpus
 Function | Description | Parameters
 --- | --- | ---
@@ -67,3 +70,7 @@ Function | Description | Parameters
 --- | --- | ---
 dictionary() | create or import a word lexicon
 ndoc(), ntoken(), ... | R-familiar utility functions
+
+## Sentiment
+
+## Tidy

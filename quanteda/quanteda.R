@@ -1,10 +1,31 @@
 library(tidyverse)
 theme_set(theme_minimal())
+library(readtext)
 library(quanteda)
+library(quanteda.textstats)
+library(quanteda.textplots)
+library(quanteda.textmodels)
+library(quanteda.corpora)
+library(newsmap)
+library(seededlda)
 
-# 
-data <- data_char_ukimmig2010
-
+# Data
+path_data <- system.file("extdata/", package = "readtext")
+dat_inaug <- read_csv(paste0(path_data, "/csv/inaugCorpus.csv"))
+dat_dail <- readtext(paste0(path_data, "/tsv/dailsample.tsv"), text_field = "speech")
+path_data <- system.file("extdata/", package = "readtext")
+dat_udhr <- readtext(paste0(path_data, "/txt/UDHR/*"))
+dat_eu <- readtext(paste0(path_data, "/txt/EU_manifestos/*.txt"),
+                   docvarsfrom = "filenames", 
+                   docvarnames = c("unit", "context", "year", "language", "party"),
+                   dvsep = "_", 
+                   encoding = "ISO-8859-1")
+dat_twitter <- readtext("https://raw.githubusercontent.com/quanteda/tutorials.quanteda.io/master/content/data/twitter.json", source = "twitter")
+dat_udhr <- readtext(paste0(path_data, "/pdf/UDHR/*.pdf"), 
+                     docvarsfrom = "filenames", 
+                     docvarnames = c("document", "language"),
+                     sep = "_")
+dat_word <- readtext(paste0(path_data, "/word/*.docx"))
 # Corpus
 my_corpus <- corpus(x = data)
 docvars(my_corpus, "Party") <- names(data)
