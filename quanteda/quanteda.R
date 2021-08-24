@@ -1,5 +1,6 @@
 library(tidyverse)
 theme_set(theme_minimal())
+library(lubridate)
 library(readtext)
 library(quanteda)
 library(quanteda.textstats)
@@ -9,96 +10,176 @@ library(quanteda.corpora)
 library(newsmap)
 library(seededlda)
 
-# Data
+# Data Import ----
+
+# Basic Operations ----
 path_data <- system.file("extdata/", package = "readtext")
 dat_inaug <- read_csv(paste0(path_data, "/csv/inaugCorpus.csv"))
-dat_dail <- readtext(paste0(path_data, "/tsv/dailsample.tsv"), text_field = "speech")
-path_data <- system.file("extdata/", package = "readtext")
-dat_udhr <- readtext(paste0(path_data, "/txt/UDHR/*"))
-dat_eu <- readtext(paste0(path_data, "/txt/EU_manifestos/*.txt"),
-                   docvarsfrom = "filenames", 
-                   docvarnames = c("unit", "context", "year", "language", "party"),
-                   dvsep = "_", 
-                   encoding = "ISO-8859-1")
-dat_twitter <- readtext("https://raw.githubusercontent.com/quanteda/tutorials.quanteda.io/master/content/data/twitter.json", source = "twitter")
-dat_udhr <- readtext(paste0(path_data, "/pdf/UDHR/*.pdf"), 
-                     docvarsfrom = "filenames", 
-                     docvarnames = c("document", "language"),
-                     sep = "_")
-dat_word <- readtext(paste0(path_data, "/word/*.docx"))
-# Corpus
-my_corpus <- corpus(x = data)
-docvars(my_corpus, "Party") <- names(data)
-docvars(my_corpus, "Year") <- 2010
-meta(my_corpus, "language") <- "english"
-meta(my_corpus, "docsource")  <- paste("data_char_ukimmig2010", 1:ndoc(my_corpus), sep = "_")
-my_corpus %>% 
-  summary(showmeta = TRUE)
+# - corpus
+corp_inaug <- corpus(x = dat_inaug, text_field = "texts")
+summary(corp_inaug)
+# - add doc ids: 1
+corp_inaug <- corpus(x = dat_inaug, text_field = "texts",
+                     docid_field = "Year")
+summary(corp_inaug)
+# - add doc ids: 2
+doc_id <- paste(dat_inaug$Year,
+                dat_inaug$FirstName,
+                dat_inaug$President,
+                sep = " ")
+docnames(corp_inaug) <- doc_id
+summary(corp_inaug)
+# - extracting document-variables
+corp_inaug %>% docvars(field = "FirstName")
+corp_inaug$FirstName
+# - assinging document-level variables
+corp_inaug$Country <- "USA"
+summary(corp_inaug)
 
-data_corpus_inaugural %>% 
-  summary() %>% 
-  ggplot(aes(Year, Tokens)) +
-  geom_line() + geom_point() +
-  scale_x_continuous(labels = c(seq(1789, 2021, 14)), breaks = c(seq(1789, 2021, 14)))
 
-# - extract text
-texts(data_corpus_inaugural)[2]
+# Subset Corpus
+data_corpus_inaugural %>% ndoc()
+data_corpus_inaugural %>% corpus_subset(Year >= 1990)
+data_corpus_inaugural %>% corpus_subset(President %in% c("Obama", "Clinton", "Carter"))
 
-# Adding two corpus objects together
-my_corpus_1 <- corpus(data_corpus_inaugural[1:5])
-my_corpus_2 <- corpus(data_corpus_inaugural[53:58])
-my_corpus_3 <- my_corpus_1 + my_corpus_2
 
-my_corpus_3 %>% summary()
+# Change units of text
+data_char_ukimmig2010 %>% view()
+corp_ukimmig <- corpus(data_char_ukimmig2010)
+corp_ukimmig %>% ndoc()
 
-# Subsetting Corpus Objects
-corpus_subset(data_corpus_inaugural, Year > 1990) %>% summary()
-corpus_subset(data_corpus_inaugural, President == "Adams") %>% summary()
+corp_ukimmig_sent <- corp_ukimmig %>% corpus_reshape(to = "sentences")
+corp_ukimmig_sent %>% ndoc()
 
-# Exploring Corpus Texts
-kwic(data_corpus_inaugural, "terror")
-kwic(data_corpus_inaugural, "terror", valuetype = "regex")
-kwic(data_corpus_inaugural, "communist*")
-docvars(data_corpus_inaugural) %>% head()
-meta(data_corpus_inaugural)
+# Extracting Tags from Texts
+corp_tagged <- corpus(c("##INTRO This is the introduction.
+                         ##DOC1 This is the first document.  Second sentence in Doc 1.
+                         ##DOC3 Third document starts here.  End of third document.",
+                        "##INTRO Document ##NUMBER Two starts before ##NUMBER Three."))
+corp_sect <- corp_tagged %>% corpus_segment(pattern = "##")
+cbind(docvars(corp_sect), text = as.character(corp_sect))
 
-# Extracting Features from a Corpus
-txt <- c(text1 = "This is $10 in 999 different ways,\n up and down; left and right!", 
-         text2 = "@kenbenoit working: on #quanteda 2day\t4ever, http://textasdata.com?page=123.")
+corp_speeches <- corpus("Mr. Smith: Text.
+                        Mrs. Jones: More text.
+                        Mr. Smith: I'm speaking, again.")
+corp_speakers <- corpus_segment(corp_speeches, pattern = "\\b[A-Z].+\\s[A-Z][a-z]+:", valuetype = "regex")
+cbind(docvars(corp_speakers), text = as.character(corp_speakers))
 
-tokens(txt, remove_numbers = TRUE, remove_punct = TRUE)
-tokens(txt, remove_numbers = FALSE, remove_punct = TRUE)
-tokens(txt, remove_numbers = TRUE, remove_punct = FALSE)
-tokens(txt, remove_numbers = FALSE, remove_punct = FALSE)
-tokens(txt, remove_numbers = FALSE, remove_punct = FALSE, remove_separators = FALSE)
+# Contruct a Tokens Object
+corp_ukimmig %>% view()
+toks_ukimmig <- tokens(corp_ukimmig)
+toks_ukimmig_nopunct <- tokens(corp_ukimmig, remove_punct = TRUE) 
 
-tokens("Great website: http://textasdata.com?page=123.",
-       what = "character")
-tokens("Great website: http://textasdata.com?page=123.",
-       what = "character", remove_separators = FALSE)
-tokens(c("Kurt Vongeut said; only assholes use semi-colons.", 
-         "Today is Thursday in Canberra:  It is yesterday in London.", 
-         "En el caso de que no puedas ir con ellos, ¿quieres ir con nosotros?"), 
-       what = "sentence")
+# Keywords in Contexts
+toks_ukimmig %>% kwic(pattern = "immig*")
+toks_ukimmig %>% kwic(pattern = c("immig*","migra*"))
+toks_ukimmig %>% kwic(pattern = c("immig*", "migra*"), window = 7)
+toks_ukimmig %>% kwic(pattern = phrase("asylum seeker*")) %>% view()
 
-# Contructing a document-feature matrix
-my_corpus_1990 <- corpus_subset(data_corpus_inaugural, Year > 1990)
-# - basic
-my_dfm <- my_corpus_1990 %>% dfm()
-# - stops & stemming
-my_dfm_2 <- my_corpus_1990 %>% 
-  dfm(remove = stopwords("english"),
-      stem = TRUE,
-      remove_punct = TRUE)
+# Select Tokens
+toks_ukimmig %>% tokens_select(pattern = stopwords("en"), selection = "remove")
+toks_ukimmig %>% tokens_select(pattern = stopwords("en"))
+toks_ukimmig %>% tokens_select(pattern = stopwords("en"), padding = TRUE)
+toks_ukimmig %>% tokens_select(pattern = c("immag*","migra*"), padding = TRUE)
+toks_ukimmig %>% tokens_select(pattern = c("immig*", "migra*"), padding = TRUE, window = 5)
 
-# Viewing the document-feature matrix
-my_dfm_2 %>% topfeatures(20)
+# Compound Tokens
+toks_ukimmig %>% kwic(pattern = phrase(c("asylum seeker*", "british citizen*")))
+toks_ukimmig %>% 
+  tokens_compound(pattern = phrase(c("asylum seeker*", "british citizen*"))) %>% 
+  kwic(pattern = c("asylum_seeker*", "british_citizen*"))
 
-# Grouping documents by document variable
-data_corpus_inaugural_dfm <- data_corpus_inaugural %>% 
-  dfm(remove = stopwords("english"),
-      stem = TRUE,
-      remove_punct = TRUE)
+# Look up Dictionary
+dict <- dictionary(list(refugee = c("refugee*","asylum"),
+                        worker = c("worker","employee")))
 
-data_corpus_inaugural_dfm_Party <- data_corpus_inaugural_dfm %>% 
-  dfm_group(groups = "Party")
+toks_ukimmig %>% 
+  tokens_lookup(dictionary = dict) %>% 
+  dfm()
+
+# Generate ngrams
+toks_ukimmig %>% tokens(remove_punct = TRUE)
+
+toks_ukimmig_ngram <- toks_ukimmig %>% 
+  tokens_ngrams(n = 2:4)
+toks_ukimmig_ngram[[1]] %>% head()
+toks_ukimmig_ngram[[1]] %>% tail()
+
+toks_ukimmig_neg_bigram <- toks_ukimmig %>% 
+  tokens_compound(pattern = phrase("not *"))
+toks_ukimmig_neg_bigram_select <- toks_ukimmig_neg_bigram %>% 
+  tokens_select(pattern = phrase("not_*"))
+toks_ukimmig_neg_bigram_select[[1]] %>% head(30)
+
+# Document-Feature Matrix
+toks_innag <- tokens(data_corpus_inaugural, remove_punct = TRUE)
+
+dfmat_innaug <- toks_innag %>% dfm()
+dfmat_innaug %>% docnames()
+dfmat_innaug %>% featnames()
+dfmat_innaug %>% rowSums()
+dfmat_innaug %>% colSums()
+dfmat_innaug %>% topfeatures()
+
+dfmat_innaug_prop <- dfmat_innaug %>% dfm_weight(scheme = "prop")
+dfmat_innaug_tfidf <- dfmat_innaug %>% dfm_tfidf()
+
+# Select Features
+dfmat_innaug %>% dfm_select(pattern = stopwords("en"), selection = "remove")
+dfmat_innaug %>% dfm_remove(pattern = stopwords("en"))
+dfmat_innaug %>% dfm_keep(min_nchar = 5) %>% 
+  topfeatures()
+dfmat_innaug %>% dfm_trim(min_termfreq = 10)
+dfmat_innaug %>% dfm_trim(max_docfreq = 0.1, docfreq_type = "prop")
+
+# Group Documents
+dfmat_innaug %>% dfm_group(groups = Party)
+
+# Feature Co-Occurence Matrix
+corp_news <- download("data_corpus_guardian")
+toks_news <- corp_news %>% tokens(remove_punct = TRUE)
+dfmat_news <- toks_news %>% dfm()
+dfmat_news <- toks_news %>% dfm()
+dfmat_news <- dfmat_news %>% dfm_remove(pattern = c(stopwords("en"), "*-time", "updated-*", "gmt", "bst"))
+dfmat_news <- dfmat_news %>% dfm_trim(min_termfreq = 100)
+dfmat_news %>% topfeatures()
+
+fcmat_news <- dfmat_news %>% fcm() 
+feats_news <- names(topfeatures(fcmat_news, 50))
+fcmat_news_select <- fcmat_news %>% fcm_select(pattern = feats_news, selection = "keep")
+
+set.seed(144)
+size <- log(colSums(dfm_select(dfmat_news, feats_news, selection = "keep")))
+textplot_network(fcmat_news_select, min_freq = 0.8, vertex_size = size / max(size) * 3)
+
+# Statistical Analysis ----
+
+# Simple Frequency Analysis
+corp_tweets <- download(url = "https://www.dropbox.com/s/846skn1i5elbnd2/data_corpus_sampletweets.rds?dl=1")
+toks_tweets <- corp_tweets %>% 
+  tokens(remove_punct = TRUE) %>% 
+  tokens_keep(pattern = "#*")
+dfmat_tweets <- toks_tweets %>% dfm()
+tstat_freq <- dfmat_tweets %>% 
+  textstat_frequency(n = 5, groups = lang)
+
+dfmat_tweets %>% 
+  textstat_frequency(n = 15) %>% 
+  ggplot(aes(reorder(feature, frequency), frequency)) +
+  geom_point() + coord_flip() +
+  labs(x = NULL)
+
+# Lexical Diversity
+tstat_lexdiv <- dfmat_innaug %>% textstat_lexdiv()
+
+# Document Feature Similarity
+tstat_dist <- as.dist(textstat_dist(dfmat_innaug))
+clust <- hclust(tstat_dist)
+plot(clust, xlab = "Distance")
+
+# Relative Frequency Analysis
+tstat_key <- textstat_keyness(dfmat_news, target = year(dfmat_news$date) >= 2016)
+tstat_key %>% textplot_keyness()
+
+# Advance Operations ----
+# Scaling and Classification ----
