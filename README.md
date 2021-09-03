@@ -22,7 +22,7 @@
   + [Neural Networks](https://github.com/Gmabatah93/TextAnalysis#neural-networks)
 - [RELATION EXTRACTION](https://github.com/Gmabatah93/TextAnalysis#relation-extraction)
   + [Tasks](https://github.com/Gmabatah93/TextAnalysis#tasks)
-  
+
 ## WORD VECTORS
 > Turney & Pantel: "If units of text have similar vectors in a text frequency matrix, then they tend to have similar meanings"
 
@@ -157,6 +157,38 @@
 <img src="Images/Stanford/RelationExtraction/HandBuilt.PNG" width="500">
 <img src="Images/Stanford/RelationExtraction/Supervised.PNG" width="500">
 <img src="Images/Stanford/RelationExtraction/DistanceSupervision.PNG" width="500">
+<img src="Images/Stanford/RelationExtraction/DistanceSupervision2.PNG" width="500">
+
+### Pipeline
+
+**_INPUT_**
+1. **Corpus:** we need to be able to identify entities in the text and connect them to a knowledge base of relations between entities. So, we need a corpus in which entity mentions are annotated with entity resolutions which map them to unique, unambiguous identifiers. Entity resolution serves two purposes:
+  - It ensures that if an entity mention could refer to two different entities, it is properly disambiguated. For example, "New York" could refer to the city or the state.
+  - It ensures that if two different entity mentions refer to the same entity, they are properly identified. For example, both "New York City" and "The Big Apple" refer to New York City
+2. **The Knowledge Base:** a collection of relational triples, each consisting of a relation, a subject, and an object.
+    - <img src="Images/Stanford/RelationExtraction/KBEx.PNG" width="500">
+    - High-Level Characteristics of the KB
+      - How many relations are there ?
+      - How big is each relation ?
+      - Examples of each relation.
+      - How many unique entities does the KB include ?
+3. **Problem Formulation:**
+  - What is the input to the prediction ?
+    - Is it a specific pair of entity mentions in a specific document ?
+    - Or is it a pair of entities, apart from any specific mentions ?
+  - What is the output of the prediction ?
+    - Do we need to predict at most one relation label ?
+    - Or can we predict multiple relation labels ?
+4. **Joining the corpus and the KB:**
+  - Use the KB to generate labels for the corpus.
+  - Use the corpus to generate features for entity pairs.
+5. **Negative Examples:**
+
+**_OUTPUT_**
+1. **Multi-Label Classification**
+2. **Build dataset**
+3. **Evaluation**
+4. **Baseline Model**
 
 # Regular Expressions
 > [baser](./RegEx/regex.pdf) \
