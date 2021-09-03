@@ -111,8 +111,9 @@
 <img src="Images/Stanford/Sentiment/SentimentRoot2.PNG" width="500">
 
 # Regular Expressions
-> [baser](file:///C:/Users/isiom/OneDrive/Desktop/GitHub/TextAnalysis/RegEx/regex.pdf) \
+> [baser](./RegEx/regex.pdf) \
 > [stringr](file:///C:/Users/isiom/OneDrive/Desktop/GitHub/TextAnalysis/RegEx/stringr.pdf)
+Read more [here](./README_2.md)
 # Pipeline
 
 # Text Preprocessing
