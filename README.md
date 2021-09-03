@@ -1,5 +1,5 @@
-<img src="Images/TextMining.PNG" width="400">
-<img src="Images/TextMining2.PNG" width="400">
+<img src="Images/TextMining.PNG" width="350">
+<img src="Images/TextMining2.PNG" width="350">
 
 # Natural Language Understanding
 
