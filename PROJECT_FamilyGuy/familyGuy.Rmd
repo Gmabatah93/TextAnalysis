@@ -107,12 +107,13 @@ library(quanteda)
 library(spacyr)
 library(ggpubr)
 library(topicmodels)
+library(quanteda)
 ```
 
 # Exploratory Data Analysis
 
 ## Data
-
+ 
 ```{r data, message=FALSE, warning=FALSE, echo=TRUE}
 # Load Data
 family_raw <- read_csv("Data/Family_guy_dialog.csv")
@@ -145,7 +146,6 @@ meg <- "#E06EAA"
 family_guy_Palette <- c(brian,chris,lois,meg,peter,stewie)
 ```
 
-
 ## Counts
 
 ```{r count_Season_VIZ, warning=FALSE, message=FALSE, echo=FALSE, fig.align='center', fig.height=4, fig.width=10}
@@ -163,7 +163,6 @@ family %>%
     axis.text.y = element_blank(),
     axis.text.x = element_text(face = "bold", size = 12, color = "darkgoldenrod")
   )
-  
 ```
 
 ```{r count_Character_VIZ, warning=FALSE, message=FALSE, echo=FALSE, fig.align='center', fig.height=4, fig.width=10}
@@ -212,7 +211,7 @@ family %>%
 > **NOTE (Count):** Peter had the most lines for the majority of the seasons. However for seasons 8 and 9 the focus shift to Stewie and Brian.
 
 
-## Part of Speech
+## Tokenization
 
 ```{r tidy}
 # Stop Words
@@ -551,7 +550,7 @@ family_bigram_clean_seperate %>%
 ```{r afinn, message=FALSE, warning=FALSE, echo=TRUE}
 family_afinn <- family_tidy %>% inner_join(get_sentiments("afinn"))
 ```
-
+ 
 ```{r afinn_index_VIZ, message=FALSE, warning=FALSE, echo=TRUE, fig.align='center', fig.height=4, fig.width=10}
 family_afinn %>% 
   count(index, value) %>% 
@@ -1623,5 +1622,57 @@ tibble(
                  perplexity(lda_Season_2_a1, family_dtm_Season), 
                  perplexity(lda_Season_2_a3, family_dtm_Season))
 )
+```
+
+
+# Quanteda [TABS] {.tabset .tabset-fade}
+
+## Corpus
+
+```{r corpus, warning=FALSE, message=FALSE, echo=FALSE}
+family_corpus <- corpus(family, text_field = "dialog")
+
+docid <- paste(family$index,
+               family$character,
+               sep = "-")
+
+docnames(family_corpus) <- docid
+
+family_corpus %>% summary()
+```
+
+## Tokens
+
+```{r tokens, warning=FALSE, message=FALSE, echo=FALSE}
+family_tokens <- family_corpus %>% tokens(remove_punct = TRUE) 
+family_tokens %>% kwic(pattern = "damn*", window = 10)
+family_tokens %>% kwic(pattern = phrase("peter griffin"))
+family_tokens_nostops <- family_tokens %>% tokens_remove(pattern = stopwords("en"))
+
+# n-grams
+family_tokens_nostops %>% 
+  tokens_remove(pattern = stopwords("en")) %>% 
+  tokens_ngrams(n = 2)
+```
+
+## Document-Feature Matrix
+
+```{r dfm, warning=FALSE, message=FALSE, echo=FALSE}
+family_dfm <- family_tokens_nostops %>% dfm()
+family_dfm %>% topfeatures(10)
+
+# tfidf
+family_tfidf <- family_dfm %>% dfm_tfidf()
+family_tfidf %>% topfeatures(10)
+```
+
+```{r dfm_select, warning=FALSE, message=FALSE, echo=FALSE}
+family_dfm %>% dfm_remove(pattern = stopwords("en"))
+family_dfm %>% dfm_trim(min_termfreq = 10)
+```
+
+```{r dfm_group, warning=FALSE, message=FALSE, echo=FALSE}
+family_dfm_Season <- family_dfm %>% dfm_group(groups = season)
+family_dfm_Character <- family_dfm %>% dfm_group(groups = character)
 ```
 

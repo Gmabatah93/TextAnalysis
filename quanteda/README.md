@@ -70,6 +70,7 @@ Function | Description | Parameters
 --- | --- | ---
 dictionary() | create or import a word lexicon
 ndoc(), ntoken(), ... | R-familiar utility functions
+kwic() | locate keywords-in-context
 
 ## Sentiment
 

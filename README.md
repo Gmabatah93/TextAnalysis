@@ -1,3 +1,38 @@
+# Word Vectors
+> Turney & Pantel: "If units of text have similar vectors in a text frequency matrix, then they tend to have similar meanings"
+
+<img src="Images/Stanford/WordVector/Overview.PNG" width="500">
+
+## Matrix Designs
+
+### Word x Word
+<img src="Images/Stanford/WordVector/WordXWord.PNG" width="500">
+
+### Word x Document
+<img src="Images/Stanford/WordVector/WordXDoc.PNG" width="500">
+
+### Word x Discourse Context
+<img src="Images/Stanford/WordVector/WordXDiscourseContext.PNG" width="500">
+
+## Co-occurence
+<img src="Images/Stanford/WordVector/Cooccurence.PNG" width="500">
+
+## Vector Comparison
+<img src="Images/Stanford/WordVector/Euclidean.PNG" width="500">
+<img src="Images/Stanford/WordVector/norm.PNG" width="500">
+<img src="Images/Stanford/WordVector/norm2.PNG" width="500">
+<img src="Images/Stanford/WordVector/cosine.PNG" width="500">
+
+  - used most often because most NLP problems we care about how words are alike
+
+<img src="Images/Stanford/WordVector/matching.PNG" width="500">
+<img src="Images/Stanford/WordVector/DistanceSummary.PNG" width="500">
+
+## Reweighting
+<img src="Images/Stanford/WordVector/GOALSReweighting.PNG" width="500">
+<img src="Images/Stanford/WordVector/ObsExp.PNG" width="500">
+<img src="Images/Stanford/WordVector/PMI.PNG" width="500">
+
 # Regular Expressions
 
 # Pipeline
