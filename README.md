@@ -13,10 +13,16 @@
   + [Reweighting](https://github.com/Gmabatah93/TextAnalysis#reweighting)
   + [Subword Information](https://github.com/Gmabatah93/TextAnalysis#subword-information)
   + [Dimensionality Reduction](https://github.com/Gmabatah93/TextAnalysis#dimensionality-reduction)
-  + [Retrofitting](https://github.com/Gmabatah93/TextAnalysis#retrofitting)
+  + [Retrofitting](hhttps://github.com/Gmabatah93/TextAnalysis#relation-extractionttps://github.com/Gmabatah93/TextAnalysis#retrofitting)
 - [SENTIMENT ANALYSIS](https://github.com/Gmabatah93/TextAnalysis#sentiment-analysis)
   + [Text Preprocessing](https://github.com/Gmabatah93/TextAnalysis#text-preprocessing)
-
+  + [Stanford Sentiment Treebank](https://github.com/Gmabatah93/TextAnalysis#stanford-sentiment-treebank)
+  + [Hyperparameter & Classifier Comparison](https://github.com/Gmabatah93/TextAnalysis#hyperparameters--classifier-comparison)
+  + [Feature Representation](https://github.com/Gmabatah93/TextAnalysis#feature-representation)
+  + [Neural Networks](https://github.com/Gmabatah93/TextAnalysis#neural-networks)
+- [RELATION EXTRACTION](https://github.com/Gmabatah93/TextAnalysis#relation-extraction)
+  + [Tasks](https://github.com/Gmabatah93/TextAnalysis#tasks)
+  
 ## WORD VECTORS
 > Turney & Pantel: "If units of text have similar vectors in a text frequency matrix, then they tend to have similar meanings"
 
@@ -90,7 +96,7 @@
 ---
 
 ## SUPERVISED: SENTIMENT ANALYSIS
-<img src="Images/Stanford/Sentiment/SentimentPapers.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Papers.PNG" width="500">
 
 ### Text Preprocessing
 <img src="Images/Stanford/Sentiment/Token.PNG" width="500">
