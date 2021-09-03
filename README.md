@@ -6,7 +6,7 @@
 # Natural Language Understanding
 > [Reference](https://www.youtube.com/playlist?list=PLoROMvodv4rObpMCir6rNNUlFAn56Js20)
 
-- [Word Vector](https://github.com/Gmabatah93/TextAnalysis#word-vectors)
+- [WORD VECTORS](https://github.com/Gmabatah93/TextAnalysis#word-vectors)
   + [Matrix Designs](https://github.com/Gmabatah93/TextAnalysis#matrix-designs)
   + [Co-occurence](https://github.com/Gmabatah93/TextAnalysis#co-occurence)
   + [Vector Comparison](https://github.com/Gmabatah93/TextAnalysis#vector-comparison)
@@ -14,10 +14,10 @@
   + [Subword Information](https://github.com/Gmabatah93/TextAnalysis#subword-information)
   + [Dimensionality Reduction](https://github.com/Gmabatah93/TextAnalysis#dimensionality-reduction)
   + [Retrofitting](https://github.com/Gmabatah93/TextAnalysis#retrofitting)
-- [Sentiment Analysis](https://github.com/Gmabatah93/TextAnalysis#sentiment-analysis)
+- [SENTIMENT ANALYSIS](https://github.com/Gmabatah93/TextAnalysis#sentiment-analysis)
   + [Text Preprocessing](https://github.com/Gmabatah93/TextAnalysis#text-preprocessing)
 
-## Word Vectors
+## WORD VECTORS
 > Turney & Pantel: "If units of text have similar vectors in a text frequency matrix, then they tend to have similar meanings"
 
 <img src="Images/Stanford/WordVector/Overview.PNG" width="500">
@@ -65,6 +65,7 @@
 <img src="Images/Stanford/WordVector/LSA.PNG" width="500">
 <img src="Images/Stanford/WordVector/LSA2.PNG" width="500">
 <img src="Images/Stanford/WordVector/LSAEx.PNG" width="500">
+<img src="Images/Stanford/WordVector/tsne.PNG" width="500">
 <img src="Images/Stanford/WordVector/Autoencoders.PNG" width="500">
 <img src="Images/Stanford/WordVector/AutoencodersIntuition.PNG" width="500">
 <img src="Images/Stanford/WordVector/Glove.PNG" width="500">
@@ -88,66 +89,72 @@
 
 ---
 
-## Sentiment Analysis
+## SUPERVISED: SENTIMENT ANALYSIS
 <img src="Images/Stanford/Sentiment/SentimentPapers.PNG" width="500">
 
 ### Text Preprocessing
-<img src="Images/Stanford/Sentiment/SentimentToken.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentTokenTreeBank.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentTokenAware.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentTokenAware2.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentStemming.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentStemmingPorter.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentStemmingLancaster.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentStemmingWordnet.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentTokenPOS.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentNegation.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentNegation2.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Token.PNG" width="500">
+<img src="Images/Stanford/Sentiment/TokenTreeBank.PNG" width="500">
+<img src="Images/Stanford/Sentiment/TokenAware.PNG" width="500">
+<img src="Images/Stanford/Sentiment/TokenAware2.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Stemming.PNG" width="500">
+<img src="Images/Stanford/Sentiment/StemmingPorter.PNG" width="500">
+<img src="Images/Stanford/Sentiment/StemmingLancaster.PNG" width="500">
+<img src="Images/Stanford/Sentiment/StemmingWordnet.PNG" width="500">
+<img src="Images/Stanford/Sentiment/TokenPOS.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Negation.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Negation2.PNG" width="500">
 
 ### Stanford Sentiment Treebank
-<img src="Images/Stanford/Sentiment/SentimentTreebank.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentTreebank2.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentRoot.PNG" width="500">
-<img src="Images/Stanford/Sentiment/SentimentRoot2.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Treebank.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Treebank2.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Root.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Root2.PNG" width="500">
+
+### Hyperparameters & Classifier Comparison
+<img src="Images/Stanford/Sentiment/Hyperparameter.PNG" width="500">
+<img src="Images/Stanford/Sentiment/ClassifierComparison.PNG" width="500">
+
+### Feature Representation
+<img src="Images/Stanford/Sentiment/Bigrams.PNG" width="500">
+<img src="Images/Stanford/Sentiment/HandbuiltNegation.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Scope.PNG" width="500">
+<img src="Images/Stanford/Sentiment/HandbuiltOther.PNG" width="500">
+<img src="Images/Stanford/Sentiment/Assessment.PNG" width="500">
+<img src="Images/Stanford/Sentiment/DistributedRep.PNG" width="500">
+
+### Neural Networks
+<img src="Images/Stanford/Sentiment/RNNModel.PNG" width="500">
+<img src="Images/Stanford/Sentiment/RNNPrep.PNG" width="500">
+<img src="Images/Stanford/Sentiment/LSTM.PNG" width="500">
+
+**TreeNN**
+
+<img src="Images/Stanford/Sentiment/TreeNN.PNG" width="500">
+<img src="Images/Stanford/Sentiment/TreeNN2.PNG" width="500">
+<img src="Images/Stanford/Sentiment/TreeNN3.PNG" width="500">
+
+## Relation Extraction
+> [Reference](https://github.com/cgpotts/cs224u/blob/master/rel_ext_01_task.ipynb)
+
+> **TASK:** extracting from natural language text relational triples. If we can accumulate a large knowledge base of relational triples, we can use it to power _question answering_ and other applications  \
+> **Distance Supervision:**
+
+### Applications
+<img src="Images/Stanford/RelationExtraction/Task.PNG" width="500">
+<img src="Images/Stanford/RelationExtraction/Task2.PNG" width="500">
+<img src="Images/Stanford/RelationExtraction/Task3.PNG" width="500">
+
+
+### Tasks
+<img src="Images/Stanford/RelationExtraction/TaskDef.PNG" width="500">
+<img src="Images/Stanford/RelationExtraction/HandBuilt.PNG" width="500">
+<img src="Images/Stanford/RelationExtraction/Supervised.PNG" width="500">
+<img src="Images/Stanford/RelationExtraction/DistanceSupervision.PNG" width="500">
 
 # Regular Expressions
 > [baser](./RegEx/regex.pdf) \
 > [stringr](file:///C:/Users/isiom/OneDrive/Desktop/GitHub/TextAnalysis/RegEx/stringr.pdf)
-Read more [here](./README_2.md)
-# Pipeline
-
-# Text Preprocessing
-> **Corpus:** collection of text documents. _[ Corpus / Documents / Paragraphs / Sentences / Tokens ]_.\
-**Tokens:** smaller units of text. _[ words / phrases / ngrams]_.\
-**Ngrams:** combination of N words
-
-## TOKENIZATION
-
-**White Space Tokenizer _Bag of Words_**
-- Sentence: "I went to NY to play football"
-- Tokens: "I", "went", "to", "NY", "to", "play", "football"
-
-**Regular Expression Tokenizer**
-
-**Normalization**
-> **Morpheme:** base form of a word.
-> **Normalization:** process of converting a token into its base form
-
-## STEMMING
-<img src="Images/stemming.PNG" width="500">
-
-_may generate non-meaningful terms_
-
-## LEMMATIZATION
-<img src="Images/lemmatization.PNG" width="500">
-
-_makes use of vocabulary, word structure, part of speech tagging and grammer relations_
-
-## Part of Speech Tagging
-> Defines the syntactic context and role of words in the Sentence. _[ Nouns | Verbs | Adjectives | Adverbs ]_
-
-## Term - Frequency Inverse-Document-Frequency
-<img src="Images/tfidf.PNG" width="500">
 
 # Latent Dirichlet Allocation
 
