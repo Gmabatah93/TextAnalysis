@@ -1,23 +1,25 @@
-# Word Vectors
+# Natural Language Understanding
+
+## Word Vectors
 > Turney & Pantel: "If units of text have similar vectors in a text frequency matrix, then they tend to have similar meanings"
 
 <img src="Images/Stanford/WordVector/Overview.PNG" width="500">
 
-## Matrix Designs
+### Matrix Designs
 
-### Word x Word
+#### Word x Word
 <img src="Images/Stanford/WordVector/WordxWord.PNG" width="500">
 
-### Word x Document
+#### Word x Document
 <img src="Images/Stanford/WordVector/WordxDoc.PNG" width="500">
 
-### Word x Discourse Context
+#### Word x Discourse Context
 <img src="Images/Stanford/WordVector/WordxDiscourseContext.PNG" width="500">
 
-## Co-occurence
+### Co-occurence
 <img src="Images/Stanford/WordVector/Cooccurence.PNG" width="500">
 
-## Vector Comparison
+### Vector Comparison
 <img src="Images/Stanford/WordVector/Euclidean.PNG" width="500">
 <img src="Images/Stanford/WordVector/norm.PNG" width="500">
 <img src="Images/Stanford/WordVector/norm2.PNG" width="500">
@@ -26,12 +28,33 @@
   - used most often because most NLP problems we care about how words are alike
 
 <img src="Images/Stanford/WordVector/matching.PNG" width="500">
+<img src="Images/Stanford/WordVector/KL.PNG" width="500">
+<img src="Images/Stanford/WordVector/DistanceMetric.PNG" width="500">
 <img src="Images/Stanford/WordVector/DistanceSummary.PNG" width="500">
 
-## Reweighting
+### Reweighting
 <img src="Images/Stanford/WordVector/GOALSReweighting.PNG" width="500">
 <img src="Images/Stanford/WordVector/ObsExp.PNG" width="500">
 <img src="Images/Stanford/WordVector/PMI.PNG" width="500">
+<img src="Images/Stanford/WordVector/TFIDF.PNG" width="500">
+<img src="Images/Stanford/WordVector/ttest.PNG" width="500">
+<img src="Images/Stanford/WordVector/PLOTweights.PNG" width="500">
+<img src="Images/Stanford/WordVector/WeightSummary.PNG" width="500">
+
+### Subword Information
+<img src="Images/Stanford/WordVector/SubwordMotivation.PNG" width="500">
+
+### Dimensionality Reduction
+<img src="Images/Stanford/WordVector/LSA.PNG" width="500">
+<img src="Images/Stanford/WordVector/LSA2.PNG" width="500">
+<img src="Images/Stanford/WordVector/LSAEx.PNG" width="500">
+<img src="Images/Stanford/WordVector/Autoencoders.PNG" width="500">
+<img src="Images/Stanford/WordVector/AutoencodersIntuition.PNG" width="500">
+<img src="Images/Stanford/WordVector/Glove.PNG" width="500">
+<img src="Images/Stanford/WordVector/GloveMethod.PNG" width="500">
+<img src="Images/Stanford/WordVector/GloveWeight.PNG" width="500">
+<img src="Images/Stanford/WordVector/GloveHyperparameters.PNG" width="500">
+<img src="Images/Stanford/WordVector/GloveEx.PNG" width="500">
 
 # Regular Expressions
 
