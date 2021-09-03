@@ -1,6 +1,6 @@
 <p float="left">
-  <img src="Images/TextMining.PNG" width="300"/>
-  <img src="Images/TextMining2.PNG" width="300">
+  <img src="Images/TextMining.PNG" width="400"/>
+  <img src="Images/TextMining2.PNG" width="400">
 </p>
 
 # Natural Language Understanding
