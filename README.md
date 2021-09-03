@@ -8,12 +8,12 @@
   + [Matrix Designs](https://github.com/Gmabatah93/TextAnalysis#matrix-designs)
   + [Co-occurence](https://github.com/Gmabatah93/TextAnalysis#co-occurence)
   + [Vector Comparison](https://github.com/Gmabatah93/TextAnalysis#vector-comparison)
-  + [Reweighting]()
-  + [Subword Information]()
-  + [Dimensionality Reduction]()
-  + [Retrofitting]()
-- [Sentiment Analysis]()
-  + [Tokenization] ()
+  + [Reweighting](https://github.com/Gmabatah93/TextAnalysis#reweighting)
+  + [Subword Information](https://github.com/Gmabatah93/TextAnalysis#subword-information)
+  + [Dimensionality Reduction](https://github.com/Gmabatah93/TextAnalysis#dimensionality-reduction)
+  + [Retrofitting](https://github.com/Gmabatah93/TextAnalysis#retrofitting)
+- [Sentiment Analysis](https://github.com/Gmabatah93/TextAnalysis#sentiment-analysis)
+  + [Text Preprocessing] ()
 
 ## Word Vectors
 > Turney & Pantel: "If units of text have similar vectors in a text frequency matrix, then they tend to have similar meanings"
@@ -84,10 +84,12 @@
 <img src="Images/Stanford/WordVector/RetrofittingEx2.PNG" width="500">
 <img src="Images/Stanford/WordVector/RetrofittingEx3.PNG" width="500">
 
+---
+
 ## Sentiment Analysis
 <img src="Images/Stanford/Sentiment/SentimentPapers.PNG" width="500">
 
-### Tokenization
+### Text Preprocessing
 <img src="Images/Stanford/Sentiment/SentimentToken.PNG" width="500">
 <img src="Images/Stanford/Sentiment/SentimentTokenTreeBank.PNG" width="500">
 <img src="Images/Stanford/Sentiment/SentimentTokenAware.PNG" width="500">
