@@ -1,3 +1,6 @@
+<img src="Images/TextMining.PNG" width="500">
+<img src="Images/TextMining2.PNG" width="500">
+
 # Natural Language Understanding
 
 ## Word Vectors
@@ -55,6 +58,22 @@
 <img src="Images/Stanford/WordVector/GloveWeight.PNG" width="500">
 <img src="Images/Stanford/WordVector/GloveHyperparameters.PNG" width="500">
 <img src="Images/Stanford/WordVector/GloveEx.PNG" width="500">
+<img src="Images/Stanford/WordVector/GloveComparisons.PNG" width="500">
+<img src="Images/Stanford/WordVector/Word2Vec.PNG" width="500">
+<img src="Images/Stanford/WordVector/Word2Vec2.PNG" width="500">
+<img src="Images/Stanford/WordVector/Word2VecSkipGram.PNG" width="500">
+<img src="Images/Stanford/WordVector/Word2VecSkipGram2.PNG" width="500">
+
+### Retrofitting
+<img src="Images/Stanford/WordVector/RetrofittingGOALS.PNG" width="500">
+<img src="Images/Stanford/WordVector/RetrofittingProsCons.PNG" width="500">
+<img src="Images/Stanford/WordVector/RetrofittingModel.PNG" width="500">
+<img src="Images/Stanford/WordVector/RetrofittingEx.PNG" width="500">
+<img src="Images/Stanford/WordVector/RetrofittingEx2.PNG" width="500">
+<img src="Images/Stanford/WordVector/RetrofittingEx3.PNG" width="500">
+
+## Sentiment Analysis
+
 
 # Regular Expressions
 
