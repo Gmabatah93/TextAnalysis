@@ -4,6 +4,16 @@
 </p>
 
 # Natural Language Understanding
+- [Word Vector](https://github.com/Gmabatah93/TextAnalysis#word-vectors)
+  + [Matrix Designs](https://github.com/Gmabatah93/TextAnalysis#matrix-designs)
+  + [Co-occurence](https://github.com/Gmabatah93/TextAnalysis#co-occurence)
+  + [Vector Comparison](https://github.com/Gmabatah93/TextAnalysis#vector-comparison)
+  + [Reweighting]()
+  + [Subword Information]()
+  + [Dimensionality Reduction]()
+  + [Retrofitting]()
+- [Sentiment Analysis]()
+  + [Tokenization] ()
 
 ## Word Vectors
 > Turney & Pantel: "If units of text have similar vectors in a text frequency matrix, then they tend to have similar meanings"
@@ -75,7 +85,19 @@
 <img src="Images/Stanford/WordVector/RetrofittingEx3.PNG" width="500">
 
 ## Sentiment Analysis
+<img src="Images/Stanford/Sentiment/SentimentPapers.PNG" width="500">
 
+### Tokenization
+<img src="Images/Stanford/Sentiment/SentimentToken.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentTokenTreeBank.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentTokenAware.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentTokenAware2.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentStemming.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentStemmingPorter.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentStemmingLancaster.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentStemmingWordnet.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentTokenPOS.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentNegation.PNG" width="500">
 
 # Regular Expressions
 
