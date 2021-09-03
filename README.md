@@ -23,6 +23,7 @@
 - [RELATION EXTRACTION](https://github.com/Gmabatah93/TextAnalysis#relation-extraction)
   + [Tasks](https://github.com/Gmabatah93/TextAnalysis#tasks)
   + [Pipeline](https://github.com/Gmabatah93/TextAnalysis#pipeline)
+  + [Enhancements](https://github.com/Gmabatah93/TextAnalysis#enhancements)
 
 ## WORD VECTORS
 > Turney & Pantel: "If units of text have similar vectors in a text frequency matrix, then they tend to have similar meanings"
@@ -190,6 +191,11 @@
 2. **Build dataset**
 3. **Evaluation**
 4. **Baseline Model**
+
+### Enhancements
+<img src="Images/Stanford/RelationExtraction/EnhanceFeatures.PNG" width="500">
+<img src="Images/Stanford/RelationExtraction/EnhanceModels.PNG" width="500">
+
 
 # Regular Expressions
 > [baser](./RegEx/regex.pdf) \
