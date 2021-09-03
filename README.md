@@ -22,6 +22,7 @@
   + [Neural Networks](https://github.com/Gmabatah93/TextAnalysis#neural-networks)
 - [RELATION EXTRACTION](https://github.com/Gmabatah93/TextAnalysis#relation-extraction)
   + [Tasks](https://github.com/Gmabatah93/TextAnalysis#tasks)
+  + [Pipeline](https://github.com/Gmabatah93/TextAnalysis#pipeline)
 
 ## WORD VECTORS
 > Turney & Pantel: "If units of text have similar vectors in a text frequency matrix, then they tend to have similar meanings"
