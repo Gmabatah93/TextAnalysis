@@ -15,7 +15,7 @@
   + [Dimensionality Reduction](https://github.com/Gmabatah93/TextAnalysis#dimensionality-reduction)
   + [Retrofitting](https://github.com/Gmabatah93/TextAnalysis#retrofitting)
 - [Sentiment Analysis](https://github.com/Gmabatah93/TextAnalysis#sentiment-analysis)
-  + [Text Preprocessing] ()
+  + [Text Preprocessing](https://github.com/Gmabatah93/TextAnalysis#text-preprocessing)
 
 ## Word Vectors
 > Turney & Pantel: "If units of text have similar vectors in a text frequency matrix, then they tend to have similar meanings"
@@ -102,9 +102,17 @@
 <img src="Images/Stanford/Sentiment/SentimentStemmingWordnet.PNG" width="500">
 <img src="Images/Stanford/Sentiment/SentimentTokenPOS.PNG" width="500">
 <img src="Images/Stanford/Sentiment/SentimentNegation.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentNegation2.PNG" width="500">
+
+### Stanford Sentiment Treebank
+<img src="Images/Stanford/Sentiment/SentimentTreebank.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentTreebank2.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentRoot.PNG" width="500">
+<img src="Images/Stanford/Sentiment/SentimentRoot2.PNG" width="500">
 
 # Regular Expressions
-
+> [baser](file:///C:/Users/isiom/OneDrive/Desktop/GitHub/TextAnalysis/RegEx/regex.pdf) \
+> [stringr](file:///C:/Users/isiom/OneDrive/Desktop/GitHub/TextAnalysis/RegEx/stringr.pdf)
 # Pipeline
 
 # Text Preprocessing
