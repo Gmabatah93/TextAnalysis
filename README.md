@@ -4,6 +4,8 @@
 </p>
 
 # Natural Language Understanding
+> [Reference](https://www.youtube.com/playlist?list=PLoROMvodv4rObpMCir6rNNUlFAn56Js20)
+
 - [Word Vector](https://github.com/Gmabatah93/TextAnalysis#word-vectors)
   + [Matrix Designs](https://github.com/Gmabatah93/TextAnalysis#matrix-designs)
   + [Co-occurence](https://github.com/Gmabatah93/TextAnalysis#co-occurence)
