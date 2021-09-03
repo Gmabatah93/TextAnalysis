@@ -6,13 +6,13 @@
 ## Matrix Designs
 
 ### Word x Word
-<img src="Images/Stanford/WordVector/WordXWord.PNG" width="500">
+<img src="Images/Stanford/WordVector/WordxWord.PNG" width="500">
 
 ### Word x Document
-<img src="Images/Stanford/WordVector/WordXDoc.PNG" width="500">
+<img src="Images/Stanford/WordVector/WordxDoc.PNG" width="500">
 
 ### Word x Discourse Context
-<img src="Images/Stanford/WordVector/WordXDiscourseContext.PNG" width="500">
+<img src="Images/Stanford/WordVector/WordxDiscourseContext.PNG" width="500">
 
 ## Co-occurence
 <img src="Images/Stanford/WordVector/Cooccurence.PNG" width="500">
