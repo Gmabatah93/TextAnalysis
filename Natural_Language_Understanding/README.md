@@ -163,7 +163,7 @@
   - It ensures that if an entity mention could refer to two different entities, it is properly disambiguated. For example, "New York" could refer to the city or the state.
   - It ensures that if two different entity mentions refer to the same entity, they are properly identified. For example, both "New York City" and "The Big Apple" refer to New York City
 2. **The Knowledge Base:** a collection of relational triples, each consisting of a relation, a subject, and an object.
-    - <img src="Images/Stanford/RelationExtraction/KBEx.PNG" width="500">
+    - <img src="Images/RelationExtraction/KBEx.PNG" width="500">
     - High-Level Characteristics of the KB
       - How many relations are there ?
       - How big is each relation ?
