@@ -3,8 +3,8 @@
   <img src="Images/TextMining2.PNG" width="400">
 </p>
 
-<img src="Images/FlowTextMining.PNG" width="400">
-<img src="Images/FlowTextMining2.PNG" width="400">
+<img src="Images/FlowTextMining.PNG" width="800">
+<img src="Images/FlowTextMining2.PNG" width="600">
 
 # Natural Language Understanding
 > [Reference](https://www.youtube.com/playlist?list=PLoROMvodv4rObpMCir6rNNUlFAn56Js20)
