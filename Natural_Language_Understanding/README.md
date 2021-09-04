@@ -196,11 +196,6 @@
 <img src="Images/Stanford/RelationExtraction/EnhanceFeatures.PNG" width="500">
 <img src="Images/Stanford/RelationExtraction/EnhanceModels.PNG" width="500">
 
-## NATURAL LANGUAGE INFERENCE
-
-# Natural Language Processing
-
-## Word Vectors
 
 # Regular Expressions
 > [baser](./RegEx/regex.pdf) \
