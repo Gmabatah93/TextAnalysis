@@ -6,6 +6,22 @@
 <img src="Images/FlowTextMining.PNG" width="800">
 <img src="Images/FlowTextMining2.PNG" width="600">
 
+# Tasks
+
+## Easy
+- **SPELL CHECKING**
+- **KEYWORD SEARCH**
+- **FINDING SYNONYMS**
+
+# Medium
+- **PARSING INFORMATION (websites, documents)**
+
+# Hard
+- **MACHINE TRANSLATION (Chinese to English)**
+- **SEMANTIC ANALYSIS (what is the meaning of a query statement)**
+- **COREFERENCE (What does "he" or "it" refer to given a document)**
+- **QUESTION ANSWERING**
+
 # Natural Language Understanding
 > [Reference](https://www.youtube.com/playlist?list=PLoROMvodv4rObpMCir6rNNUlFAn56Js20)
 
